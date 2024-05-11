@@ -22,6 +22,19 @@ struct Wildcard {
   capture_index: u32,
 }
 
+#[derive(PartialEq)]
+enum BraceState {
+  Invalid,
+  Comma,
+  EndBrace,
+}
+
+struct BraceStack {
+  stack: [State; 10],
+  length: u32,
+  longest_brace_match: u32,
+}
+
 type Capture = Range<usize>;
 
 pub fn glob_match(glob: &str, path: &str) -> bool {
@@ -98,13 +111,9 @@ fn glob_match_internal<'a>(
               // Matched a full /**/ segment. If the last character in the path was a separator,
               // skip the separator in the glob so we search for the next character.
               // In effect, this makes the whole segment optional so that a/**/b matches a/b.
-              if state.path_index == 0
-                || (state.path_index < path.len()
-                  && is_separator(path[state.path_index - 1] as char))
-              {
-                state.end_capture(&mut captures);
-                state.glob_index += 1;
-              }
+              
+              state.end_capture(&mut captures);
+              state.glob_index += 1;
 
               // The allows_sep flag allows separator characters in ** matches.
               // one is a '/', which prevents a/**/b from matching a/bb.
@@ -342,13 +351,6 @@ fn unescape(c: &mut u8, glob: &[u8], glob_index: &mut usize) -> bool {
   true
 }
 
-#[derive(PartialEq)]
-enum BraceState {
-  Invalid,
-  Comma,
-  EndBrace,
-}
-
 impl State {
   #[inline(always)]
   fn backtrack(&mut self) {
@@ -458,12 +460,6 @@ fn skip_globstars(glob: &[u8], mut glob_index: usize) -> usize {
   glob_index
 }
 
-struct BraceStack {
-  stack: [State; 10],
-  length: u32,
-  longest_brace_match: u32,
-}
-
 impl Default for BraceStack {
   #[inline]
   fn default() -> Self {
@@ -524,7 +520,7 @@ mod tests {
 
   #[test]
   fn basic() {
-    assert!(glob_match("abc", "abc"));
+    assert!(glob_match("a/**/", "a/"));
     assert!(glob_match("*", "abc"));
     assert!(glob_match("*", ""));
     assert!(glob_match("**", ""));
