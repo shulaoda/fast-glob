@@ -265,21 +265,7 @@ fn glob_match_internal<'a>(
             state.path_index += 1;
 
             // If this is not a separator, lock in the previous globstar.
-            if c != b'/'
-              && (state.globstar.glob_index <= 0
-                && (
-                  // starts with a globstar
-                  glob.len() > 1
-                    && glob[state.globstar.glob_index as usize] != b'*'
-                    && (glob[state.globstar.glob_index as usize + 1] != b'*')
-                    || (
-                      // or the globstar state equals the wildcard state
-                      state.globstar.glob_index == state.wildcard.glob_index as u32
-                        && state.globstar.path_index == state.wildcard.path_index as u32
-                        && state.globstar.capture_index == state.wildcard.capture_index as u32
-                    )
-                ))
-            {
+            if c != b'/' {
               state.globstar.path_index = 0;
             }
             continue;
