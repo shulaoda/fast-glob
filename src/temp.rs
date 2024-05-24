@@ -345,13 +345,23 @@ impl State {
 
   #[inline(always)]
   fn skip_globstars(&mut self, glob: &[u8]) {
+    // Coalesce multiple ** segments into one.
     self.glob_index += 2;
 
-    // Coalesce multiple ** segments into one.
-    while self.glob_index + 3 <= glob.len()
-      && unsafe { glob.get_unchecked(self.glob_index..self.glob_index + 3) } == b"/**"
+    // Only entire path components can be skipped.
+    // i.e. '**' in the pattern 'a/**/**/b' can match multiple path components, but in 'a/**/**b' it cannot.
+    while glob_index + 4 <= glob.len()
+      && unsafe { glob.get_unchecked(glob_index..glob_index + 4) } == b"/**/"
     {
-      self.glob_index += 3;
+      glob_index += 3;
+    }
+
+    // A trailing '**' can also match multiple trailing path components.
+    // i.e. the pattern '**/**/**' is valid and can match multiple components.
+    if glob_index + 3 == glob.len()
+      && unsafe { glob.get_unchecked(glob_index..glob_index + 3) } == b"/**"
+    {
+      glob_index += 3;
     }
 
     self.glob_index -= 2;
