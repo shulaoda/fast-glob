@@ -41,6 +41,10 @@ fn glob_match_internal<'a>(glob: &str, path: &'a str) -> bool {
 
   let mut state = State::default();
 
+  // Store the state when we see an opening '{' brace in a stack.
+  // Up to 10 nested braces are supported.
+  let mut brace_stack = BraceStack::default();
+
   // First, check if the pattern is negated with a leading '!' character.
   // Multiple negations can occur.
   let mut negated = false;
@@ -63,6 +67,18 @@ fn glob_match_internal<'a>(glob: &str, path: &'a str) -> bool {
             state.wildcard.path_index = 0;
           }
 
+          // If the next char is a special brace separator,
+          // skip to the end of the braces so we don't try to match it.
+          if brace_stack.length > 0
+            && state.glob_index < glob.len()
+            && matches!(glob[state.glob_index], b',' | b'}')
+          {
+            if state.skip_braces(glob, false) == BraceState::Invalid {
+              // invalid pattern!
+              return false;
+            }
+          }
+
           continue;
         }
         b'?' if state.path_index < path.len() => {
@@ -73,60 +89,93 @@ fn glob_match_internal<'a>(glob: &str, path: &'a str) -> bool {
           }
         }
         b'[' if state.path_index < path.len() => {
-          state.glob_index += 1;
-          let c = path[state.path_index];
-
-          // Check if the character class is negated.
-          let mut negated = false;
-          if state.glob_index < glob.len() && matches!(glob[state.glob_index], b'^' | b'!') {
-            negated = true;
+          if !is_separator(path[state.path_index] as char) {
             state.glob_index += 1;
-          }
+            let c = path[state.path_index];
 
-          // Try each range.
-          let mut first = true;
-          let mut is_match = false;
-          while state.glob_index < glob.len() && (first || glob[state.glob_index] != b']') {
-            let mut low = glob[state.glob_index];
-            if !unescape(&mut low, glob, &mut state.glob_index) {
-              // Invalid pattern!
-              return false;
-            }
-            state.glob_index += 1;
-
-            // If there is a - and the following character is not ], read the range end character.
-            let high = if state.glob_index + 1 < glob.len()
-              && glob[state.glob_index] == b'-'
-              && glob[state.glob_index + 1] != b']'
-            {
+            // Check if the character class is negated.
+            let mut negated = false;
+            if state.glob_index < glob.len() && matches!(glob[state.glob_index], b'^' | b'!') {
+              negated = true;
               state.glob_index += 1;
-              let mut high = glob[state.glob_index];
-              if !unescape(&mut high, glob, &mut state.glob_index) {
+            }
+
+            // Try each range.
+            let mut first = true;
+            let mut is_match = false;
+            while state.glob_index < glob.len() && (first || glob[state.glob_index] != b']') {
+              let mut low = glob[state.glob_index];
+              if !unescape(&mut low, glob, &mut state.glob_index) {
                 // Invalid pattern!
                 return false;
               }
               state.glob_index += 1;
-              high
-            } else {
-              low
-            };
 
-            if low <= c && c <= high {
-              is_match = true;
+              // If there is a - and the following character is not ], read the range end character.
+              let high = if state.glob_index + 1 < glob.len()
+                && glob[state.glob_index] == b'-'
+                && glob[state.glob_index + 1] != b']'
+              {
+                state.glob_index += 1;
+                let mut high = glob[state.glob_index];
+                if !unescape(&mut high, glob, &mut state.glob_index) {
+                  // Invalid pattern!
+                  return false;
+                }
+                state.glob_index += 1;
+                high
+              } else {
+                low
+              };
+
+              if low <= c && c <= high {
+                is_match = true;
+              }
+              first = false;
             }
-            first = false;
-          }
 
-          if state.glob_index >= glob.len() {
-            // invalid pattern!
+            if state.glob_index >= glob.len() {
+              // invalid pattern!
+              return false;
+            }
+
+            state.glob_index += 1;
+            if is_match != negated {
+              state.path_index += 1;
+              continue;
+            }
+          }
+        }
+        b'{' => {
+          if brace_stack.length as usize >= brace_stack.stack.len() {
+            // Invalid pattern! Too many nested braces.
             return false;
           }
 
+          // Push old state to the stack, and reset current state.
+          state = brace_stack.push(&state);
+          continue;
+        }
+        b'}' if brace_stack.length > 0 => {
+          // If we hit the end of the braces, we matched the last option.
+          brace_stack.longest_brace_match =
+            brace_stack.longest_brace_match.max(state.path_index as u32);
+
           state.glob_index += 1;
-          if is_match != negated {
-            state.path_index += 1;
-            continue;
-          }
+          state = brace_stack.pop(&state);
+          continue;
+        }
+        b',' if brace_stack.length > 0 => {
+          // If we hit a comma, we matched one of the options!
+          // But we still need to check the others in case there is a longer match.
+          brace_stack.longest_brace_match =
+            brace_stack.longest_brace_match.max(state.path_index as u32);
+
+          // restore
+          state.wildcard.path_index = 0;
+          state.glob_index = state.glob_index + 1;
+          state.path_index = brace_stack.last().path_index;
+          continue;
         }
         mut c if state.path_index < path.len() => {
           // Match escaped characters as literals.
@@ -162,6 +211,36 @@ fn glob_match_internal<'a>(glob: &str, path: &'a str) -> bool {
       continue;
     }
 
+    if brace_stack.length > 0 {
+      // If in braces, find next option and reset path to index where we saw the '{'
+      match state.skip_braces(glob, true) {
+        BraceState::Comma => {
+          state.path_index = brace_stack.last().path_index;
+          continue;
+        }
+        BraceState::Invalid => {
+          return false;
+        }
+        BraceState::EndBrace => {
+          // Hit the end. Pop the stack.
+          // If we matched a previous option, use that.
+          if brace_stack.longest_brace_match > 0 {
+            state = brace_stack.pop(&state);
+            continue;
+          } else {
+            // Didn't match. Restore state, and check if we need to jump back to a star pattern.
+            state = *brace_stack.last();
+            brace_stack.length -= 1;
+
+            if state.wildcard.path_index > 0 && state.wildcard.path_index as usize <= path.len() {
+              state.backtrack();
+              continue;
+            }
+          }
+        }
+      }
+    }
+
     return negated;
   }
 
@@ -193,6 +272,44 @@ impl State {
   fn backtrack(&mut self) {
     self.glob_index = self.wildcard.glob_index as usize;
     self.path_index = self.wildcard.path_index as usize;
+  }
+
+  fn skip_braces(&mut self, glob: &[u8], stop_on_comma: bool) -> BraceState {
+    let mut braces = 1;
+    let mut in_brackets = false;
+
+    while self.glob_index < glob.len() && braces > 0 {
+      match glob[self.glob_index] {
+        // Skip nested braces.
+        b'{' if !in_brackets => braces += 1,
+        b'}' if !in_brackets => braces -= 1,
+        b',' if stop_on_comma && braces == 1 && !in_brackets => {
+          self.glob_index += 1;
+          return BraceState::Comma;
+        }
+        c @ (b'*' | b'[') if !in_brackets => {
+          if c == b'[' {
+            in_brackets = true;
+          }
+          if c == b'*' {
+            if self.glob_index + 1 < glob.len() && glob[self.glob_index + 1] == b'*' {
+              self.glob_index += 1;
+            }
+          }
+        }
+        b']' => in_brackets = false,
+        b'\\' => self.glob_index += 1,
+        _ => {}
+      }
+
+      self.glob_index += 1;
+    }
+
+    if braces != 0 {
+      return BraceState::Invalid;
+    }
+
+    BraceState::EndBrace
   }
 }
 
