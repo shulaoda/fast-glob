@@ -1,9 +1,9 @@
 [package]
-name = "glob_match"
+name = "glob-match"
 description = "An extremely fast glob matcher"
 version = "0.2.1"
 license = "MIT"
-authors = ["Devon Govett <devongovett@gmail.com>", "dalaoshu <laipichan@qq.com>"]
+authors = ["Devon Govett <devongovett@gmail.com>"]
 edition = "2021"
 
 [dev-dependencies]
@@ -14,10 +14,6 @@ globset = "0.4.10"
 [[bench]]
 name = "bench"
 harness = false
-
-[[test]]
-name = "basic_test"
-path = "tests/basic.rs"
 
 [profile.release]
 lto = true
