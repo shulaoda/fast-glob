@@ -8,6 +8,7 @@ struct State {
 
   // When we hit a * or **, we store the state for backtracking.
   wildcard: Wildcard,
+  globstar: Wildcard,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -57,14 +58,58 @@ fn glob_match_internal<'a>(glob: &str, path: &'a str) -> bool {
     if state.glob_index < glob.len() {
       match glob[state.glob_index] {
         b'*' => {
-          // Backtrack
+          let is_globstar = state.glob_index + 1 < glob.len() && glob[state.glob_index + 1] == b'*';
+          if is_globstar {
+            // Coalesce multiple ** segments into one.
+            state.skip_globstars(glob);
+          }
+
+          // Prepare for backtrack
           state.wildcard.glob_index = state.glob_index as u32;
           state.wildcard.path_index = state.path_index as u32 + 1;
 
-          state.glob_index += 1;
+          let mut in_globstar = false;
+          // ** allows path separators, whereas * does not.
+          // However, ** must be a full path component, i.e. a/**/b not a**b.
+          if is_globstar {
+            state.glob_index += 2;
 
-          if state.path_index < path.len() && is_separator(path[state.path_index] as char) {
-            state.wildcard.path_index = 0;
+            if glob.len() == state.glob_index {
+              // A trailing ** segment without a following separator.
+              state.skip_to_separator(path, true);
+              state.globstar = state.wildcard;
+              in_globstar = true;
+            } else if (state.glob_index < 3 || glob[state.glob_index - 3] == b'/')
+              && glob[state.glob_index] == b'/'
+            {
+              // Matched a full /**/ segment. If the last character in the path was a separator,
+              // skip the separator in the glob so we search for the next character.
+              // In effect, this makes the whole segment optional so that a/**/b matches a/b.
+              state.glob_index += 1;
+
+              // The allows_sep flag allows separator characters in ** matches.
+              // one is a '/', which prevents a/**/b from matching a/bb.
+              state.skip_to_separator(path, false);
+              state.globstar = state.wildcard;
+              in_globstar = true;
+            }
+          } else {
+            state.glob_index += 1;
+          }
+
+          // **/*  abc/
+
+          // If we are in a * segment and hit a separator,
+          // either jump back to a previous ** or end the wildcard.
+          if !in_globstar
+            && state.path_index < path.len()
+            && is_separator(path[state.path_index] as char)
+          {
+            if state.globstar.path_index > 0 && state.path_index + 1 <= path.len() {
+              state.wildcard = state.globstar;
+            } else {
+              state.wildcard.path_index = 0;
+            }
           }
 
           // If the next char is a special brace separator,
@@ -173,6 +218,7 @@ fn glob_match_internal<'a>(glob: &str, path: &'a str) -> bool {
 
           // restore
           state.wildcard.path_index = 0;
+          state.globstar.path_index = 0;
           state.glob_index = state.glob_index + 1;
           state.path_index = brace_stack.last().path_index;
           continue;
@@ -195,7 +241,7 @@ fn glob_match_internal<'a>(glob: &str, path: &'a str) -> bool {
             state.path_index += 1;
 
             if c == b'/' {
-              state.wildcard.path_index = 0;
+              state.wildcard = state.globstar;
             }
 
             continue;
@@ -274,6 +320,43 @@ impl State {
     self.path_index = self.wildcard.path_index as usize;
   }
 
+  #[inline(always)]
+  fn skip_to_separator(&mut self, path: &[u8], is_end_valid: bool) {
+    if self.path_index == path.len() {
+      self.wildcard.path_index += 1;
+      return;
+    }
+
+    let mut path_index = self.path_index;
+
+    while path_index < path.len() {
+      path_index += 1;
+      if is_separator(path[path_index - 1] as char) {
+        break;
+      }
+    }
+
+    if !is_end_valid && path_index == path.len() && !is_separator(path[path_index - 1] as char) {
+      path_index += 1;
+    }
+
+    self.wildcard.path_index = path_index as u32;
+  }
+
+  #[inline(always)]
+  fn skip_globstars(&mut self, glob: &[u8]) {
+    self.glob_index += 2;
+
+    // Coalesce multiple ** segments into one.
+    while self.glob_index + 3 <= glob.len()
+      && unsafe { glob.get_unchecked(self.glob_index..self.glob_index + 3) } == b"/**"
+    {
+      self.glob_index += 3;
+    }
+
+    self.glob_index -= 2;
+  }
+
   fn skip_braces(&mut self, glob: &[u8], stop_on_comma: bool) -> BraceState {
     let mut braces = 1;
     let mut in_brackets = false;
@@ -293,6 +376,7 @@ impl State {
           }
           if c == b'*' {
             if self.glob_index + 1 < glob.len() && glob[self.glob_index + 1] == b'*' {
+              self.skip_globstars(glob);
               self.glob_index += 1;
             }
           }
