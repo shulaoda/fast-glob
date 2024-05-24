@@ -103,11 +103,13 @@ fn glob_match_internal<'a>(
           if is_globstar {
             state.glob_index += 2;
 
-            if state.glob_index == glob.len()
+            let is_end_valid = state.glob_index == glob.len();
+
+            if is_end_valid
               || ((state.glob_index < 3 || glob[state.glob_index - 3] == b'/')
                 && glob[state.glob_index] == b'/')
             {
-              if state.glob_index != glob.len() {
+              if !is_end_valid {
                 // Matched a full /**/ segment. If the last character in the path was a separator,
                 // skip the separator in the glob so we search for the next character.
                 // In effect, this makes the whole segment optional so that a/**/b matches a/b.
@@ -115,7 +117,7 @@ fn glob_match_internal<'a>(
                 state.glob_index += 1;
               }
 
-              state.skip_to_separator(path, true);
+              state.skip_to_separator(path, is_end_valid);
               state.globstar = state.wildcard;
               in_globstar = true;
             }
