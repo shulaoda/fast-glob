@@ -22,6 +22,19 @@ struct Wildcard {
   capture_index: u32,
 }
 
+#[derive(PartialEq)]
+enum BraceState {
+  Invalid,
+  Comma,
+  EndBrace,
+}
+
+struct BraceStack {
+  stack: [State; 10],
+  length: u32,
+  longest_brace_match: u32,
+}
+
 type Capture = Range<usize>;
 
 pub fn glob_match(glob: &str, path: &str) -> bool {
@@ -84,6 +97,7 @@ fn glob_match_internal<'a>(
           state.wildcard.glob_index = state.glob_index as u32;
           state.wildcard.path_index = state.path_index as u32 + 1;
 
+          let mut in_globstar = false;
           // ** allows path separators, whereas * does not.
           // However, ** must be a full path component, i.e. a/**/b not a**b.
           if is_globstar {
@@ -91,24 +105,23 @@ fn glob_match_internal<'a>(
 
             if glob.len() == state.glob_index {
               // A trailing ** segment without a following separator.
+              state.skip_to_separator(path, true);
               state.globstar = state.wildcard;
+              in_globstar = true;
             } else if (state.glob_index < 3 || glob[state.glob_index - 3] == b'/')
               && glob[state.glob_index] == b'/'
             {
               // Matched a full /**/ segment. If the last character in the path was a separator,
               // skip the separator in the glob so we search for the next character.
               // In effect, this makes the whole segment optional so that a/**/b matches a/b.
-              if state.path_index == 0
-                || (state.path_index < path.len()
-                  && is_separator(path[state.path_index - 1] as char))
-              {
-                state.end_capture(&mut captures);
-                state.glob_index += 1;
-              }
+              state.end_capture(&mut captures);
+              state.glob_index += 1;
 
               // The allows_sep flag allows separator characters in ** matches.
               // one is a '/', which prevents a/**/b from matching a/bb.
+              state.skip_to_separator(path, false);
               state.globstar = state.wildcard;
+              in_globstar = true;
             }
           } else {
             state.glob_index += 1;
@@ -116,18 +129,16 @@ fn glob_match_internal<'a>(
 
           // If we are in a * segment and hit a separator,
           // either jump back to a previous ** or end the wildcard.
-          if state.globstar.path_index != state.wildcard.path_index
-            && state.path_index < path.len()
-            && is_separator(path[state.path_index] as char)
-          {
-            // Special case: don't jump back for a / at the end of the glob.
-            if state.globstar.path_index > 0 && state.path_index + 1 < path.len() {
-              state.glob_index = state.globstar.glob_index as usize;
-              state.capture_index = state.globstar.capture_index as usize;
-              state.wildcard.glob_index = state.globstar.glob_index;
-              state.wildcard.capture_index = state.globstar.capture_index;
+          if state.path_index < path.len() && is_separator(path[state.path_index] as char) {
+            if in_globstar {
+              state.path_index += 1;
             } else {
-              state.wildcard.path_index = 0;
+              // Special case: don't jump back for a / at the end of the glob.
+              if state.globstar.path_index > 0 && state.path_index + 1 <= path.len() {
+                state.wildcard = state.globstar;
+              } else {
+                state.wildcard.path_index = 0;
+              }
             }
           }
 
@@ -154,58 +165,60 @@ fn glob_match_internal<'a>(
           }
         }
         b'[' if state.path_index < path.len() => {
-          state.glob_index += 1;
-          let c = path[state.path_index];
-
-          // Check if the character class is negated.
-          let mut negated = false;
-          if state.glob_index < glob.len() && matches!(glob[state.glob_index], b'^' | b'!') {
-            negated = true;
+          if !is_separator(path[state.path_index] as char) {
             state.glob_index += 1;
-          }
+            let c = path[state.path_index];
 
-          // Try each range.
-          let mut first = true;
-          let mut is_match = false;
-          while state.glob_index < glob.len() && (first || glob[state.glob_index] != b']') {
-            let mut low = glob[state.glob_index];
-            if !unescape(&mut low, glob, &mut state.glob_index) {
-              // Invalid pattern!
-              return false;
-            }
-            state.glob_index += 1;
-
-            // If there is a - and the following character is not ], read the range end character.
-            let high = if state.glob_index + 1 < glob.len()
-              && glob[state.glob_index] == b'-'
-              && glob[state.glob_index + 1] != b']'
-            {
+            // Check if the character class is negated.
+            let mut negated = false;
+            if state.glob_index < glob.len() && matches!(glob[state.glob_index], b'^' | b'!') {
+              negated = true;
               state.glob_index += 1;
-              let mut high = glob[state.glob_index];
-              if !unescape(&mut high, glob, &mut state.glob_index) {
+            }
+
+            // Try each range.
+            let mut first = true;
+            let mut is_match = false;
+            while state.glob_index < glob.len() && (first || glob[state.glob_index] != b']') {
+              let mut low = glob[state.glob_index];
+              if !unescape(&mut low, glob, &mut state.glob_index) {
                 // Invalid pattern!
                 return false;
               }
               state.glob_index += 1;
-              high
-            } else {
-              low
-            };
 
-            if low <= c && c <= high {
-              is_match = true;
+              // If there is a - and the following character is not ], read the range end character.
+              let high = if state.glob_index + 1 < glob.len()
+                && glob[state.glob_index] == b'-'
+                && glob[state.glob_index + 1] != b']'
+              {
+                state.glob_index += 1;
+                let mut high = glob[state.glob_index];
+                if !unescape(&mut high, glob, &mut state.glob_index) {
+                  // Invalid pattern!
+                  return false;
+                }
+                state.glob_index += 1;
+                high
+              } else {
+                low
+              };
+
+              if low <= c && c <= high {
+                is_match = true;
+              }
+              first = false;
             }
-            first = false;
-          }
-          if state.glob_index >= glob.len() {
-            // invalid pattern!
-            return false;
-          }
-          state.glob_index += 1;
-          if is_match != negated {
-            state.add_char_capture(&mut captures);
-            state.path_index += 1;
-            continue;
+            if state.glob_index >= glob.len() {
+              // invalid pattern!
+              return false;
+            }
+            state.glob_index += 1;
+            if is_match != negated {
+              state.add_char_capture(&mut captures);
+              state.path_index += 1;
+              continue;
+            }
           }
         }
         b'{' if state.path_index < path.len() => {
@@ -264,10 +277,10 @@ fn glob_match_internal<'a>(
             state.glob_index += 1;
             state.path_index += 1;
 
-            // If this is not a separator, lock in the previous globstar.
-            if c != b'/' {
-              state.globstar.path_index = 0;
+            if c == b'/' {
+              state.wildcard = state.globstar;
             }
+
             continue;
           }
         }
@@ -284,29 +297,31 @@ fn glob_match_internal<'a>(
     if brace_stack.length > 0 {
       // If in braces, find next option and reset path to index where we saw the '{'
       match state.skip_braces(glob, &mut captures, true) {
-        BraceState::Invalid => return false,
         BraceState::Comma => {
           state.path_index = brace_stack.last().path_index;
           continue;
         }
-        BraceState::EndBrace => {}
-      }
-
-      // Hit the end. Pop the stack.
-      // If we matched a previous option, use that.
-      if brace_stack.longest_brace_match > 0 {
-        state = brace_stack.pop(&state, &mut captures);
-        continue;
-      } else {
-        // Didn't match. Restore state, and check if we need to jump back to a star pattern.
-        state = *brace_stack.last();
-        brace_stack.length -= 1;
-        if let Some(captures) = &mut captures {
-          captures.truncate(state.capture_index);
+        BraceState::Invalid => {
+          return false;
         }
-        if state.wildcard.path_index > 0 && state.wildcard.path_index as usize <= path.len() {
-          state.backtrack();
-          continue;
+        BraceState::EndBrace => {
+          // Hit the end. Pop the stack.
+          // If we matched a previous option, use that.
+          if brace_stack.longest_brace_match > 0 {
+            state = brace_stack.pop(&state, &mut captures);
+            continue;
+          } else {
+            // Didn't match. Restore state, and check if we need to jump back to a star pattern.
+            state = *brace_stack.last();
+            brace_stack.length -= 1;
+            if let Some(captures) = &mut captures {
+              captures.truncate(state.capture_index);
+            }
+            if state.wildcard.path_index > 0 && state.wildcard.path_index as usize <= path.len() {
+              state.backtrack();
+              continue;
+            }
+          }
         }
       }
     }
@@ -340,13 +355,6 @@ fn unescape(c: &mut u8, glob: &[u8], glob_index: &mut usize) -> bool {
     }
   }
   true
-}
-
-#[derive(PartialEq)]
-enum BraceState {
-  Invalid,
-  Comma,
-  EndBrace,
 }
 
 impl State {
@@ -391,6 +399,30 @@ impl State {
     self.end_capture(captures);
     self.begin_capture(captures, self.path_index..self.path_index + 1);
     self.capture_index += 1;
+  }
+
+  #[inline(always)]
+  fn skip_to_separator(&mut self, path: &[u8], is_end_valid: bool) {
+    if self.path_index == path.len() {
+      self.wildcard.path_index += 1;
+      return;
+    }
+
+    let mut path_index = self.path_index + 1;
+
+    while path_index < path.len() {
+      if is_separator(path[path_index] as char) {
+        break;
+      }
+
+      path_index += 1;
+    }
+
+    if !is_end_valid && path_index == path.len() {
+      path_index += 1;
+    }
+
+    self.wildcard.path_index = path_index as u32;
   }
 
   fn skip_braces(
@@ -470,12 +502,6 @@ fn skip_globstars(glob: &[u8], mut glob_index: usize) -> usize {
   glob_index
 }
 
-struct BraceStack {
-  stack: [State; 10],
-  length: u32,
-  longest_brace_match: u32,
-}
-
 impl Default for BraceStack {
   #[inline]
   fn default() -> Self {
@@ -536,7 +562,7 @@ mod tests {
 
   #[test]
   fn basic() {
-    assert!(glob_match("abc", "abc"));
+    assert!(glob_match("a/**/", "a/"));
     assert!(glob_match("*", "abc"));
     assert!(glob_match("*", ""));
     assert!(glob_match("**", ""));
@@ -857,7 +883,7 @@ mod tests {
     assert!(glob_match("[a-y]*[^c]", "bd"));
     assert!(glob_match("[a-y]*[^c]", "bb"));
     assert!(glob_match("[a-y]*[^c]", "bcd"));
-    assert!(glob_match("[a-y]*[^c]", "bdir/"));
+    assert!(!glob_match("[a-y]*[^c]", "bdir/"));
     assert!(!glob_match("[a-y]*[^c]", "Beware"));
     assert!(!glob_match("[a-y]*[^c]", "c"));
     assert!(glob_match("[a-y]*[^c]", "ca"));
@@ -1072,7 +1098,7 @@ mod tests {
   #[test]
   fn bash_slashmatch() {
     // assert!(!glob_match("f[^eiu][^eiu][^eiu][^eiu][^eiu]r", "foo/bar"));
-    assert!(glob_match("foo[/]bar", "foo/bar"));
+    assert!(!glob_match("foo[/]bar", "foo/bar"));
     assert!(glob_match("f[^eiu][^eiu][^eiu][^eiu][^eiu]r", "foo-bar"));
   }
 
@@ -1432,9 +1458,9 @@ mod tests {
     assert!(!glob_match("a/**/**/*", "a"));
     assert!(!glob_match("a/**/**/**/*", "a"));
     assert!(!glob_match("**/a", "a/"));
-    assert!(!glob_match("a/**/*", "a/"));
-    assert!(!glob_match("a/**/**/*", "a/"));
-    assert!(!glob_match("a/**/**/**/*", "a/"));
+    assert!(glob_match("a/**/*", "a/"));
+    assert!(glob_match("a/**/**/*", "a/"));
+    assert!(glob_match("a/**/**/**/*", "a/"));
     assert!(!glob_match("**/a", "a/b"));
     assert!(!glob_match("a/**/j/**/z/*.md", "a/b/c/j/e/z/c.txt"));
     assert!(!glob_match("a/**/b", "a/bb"));
