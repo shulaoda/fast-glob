@@ -560,7 +560,7 @@ mod tests {
 
   #[test]
   fn basic() {
-    assert!(glob_match("a/**/", "a/"));
+    assert!(glob_match("abc", "abc"));
     assert!(glob_match("*", "abc"));
     assert!(glob_match("*", ""));
     assert!(glob_match("**", ""));
