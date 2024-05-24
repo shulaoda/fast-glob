@@ -452,11 +452,23 @@ impl State {
 #[inline(always)]
 fn skip_globstars(glob: &[u8], mut glob_index: usize) -> usize {
   // Coalesce multiple ** segments into one.
-  while glob_index + 3 <= glob.len()
+
+  // Only entire path components can be skipped.
+  // i.e. '**' in the pattern 'a/**/**/b' can match multiple path components, but in 'a/**/**b' it cannot.
+  while glob_index + 4 <= glob.len()
+    && unsafe { glob.get_unchecked(glob_index..glob_index + 4) } == b"/**/"
+  {
+    glob_index += 3;
+  }
+
+  // A trailing '**' can also match multiple trailing path components.
+  // i.e. the pattern '**/**/**' is valid and can match multiple components.
+  if glob_index + 3 == glob.len()
     && unsafe { glob.get_unchecked(glob_index..glob_index + 3) } == b"/**"
   {
     glob_index += 3;
   }
+
   glob_index
 }
 
@@ -1596,6 +1608,8 @@ mod tests {
     assert!(glob_match("a/**", "a/b/c/d"));
     assert!(glob_match("a/**/*", "a/b/c/d"));
     assert!(glob_match("a/**/**/*", "a/b/c/d"));
+
+    assert!(glob_match("**/**.txt.js", "/foo/bar.txt.js"));
   }
 
   #[test]
