@@ -645,9 +645,8 @@ mod tests {
     assert!(glob_match("a/**/*.d", "a/b/c.d"));
     assert!(glob_match("a/**/*.d", "a/.b/c.d"));
 
-    // still not working
-    // assert!(glob_match("**/*/**", "a/b/c"));
-    // assert!(glob_match("**/*/c.js", "a/b/c.js"));;
+    assert!(glob_match("**/*/**", "a/b/c"));
+    assert!(glob_match("**/*/c.js", "a/b/c.js"));
   }
 
   // The below tests are based on Bash and micromatch.
