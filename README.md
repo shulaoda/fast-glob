@@ -1,17 +1,17 @@
-# glob-match
+# fast-glob
 
-An extremely fast glob matching library with support for wildcards, character classes, and brace expansion.
+## Introduce
 
-* Linear time matching. No exponential backtracking.
-* Zero allocations.
-* No regex compilation. Matching occurs on the glob pattern in place.
-* Support for capturing matched ranges of wildcards.
-* Thousands of tests based on Bash and [micromatch](https://github.com/micromatch/micromatch).
+An extremely fast glob matching library which is forked from [`devongovett/glob-match`](https://github.com/devongovett/glob-match). Due to the author hasn't maintained the repository for a long time, I will continue to maintain it until the issues has been responded.
+
+* Nearly 60% performance improvement
+* Inheriting the excellent features of [`glob-match`](https://github.com/devongovett/glob-match)
+* Fixed matching issues with wildcard and globstar [`glob-match/issues#9`](https://github.com/devongovett/glob-match/issues/9)
 
 ## Example
 
 ```rust
-use glob_match::glob_match;
+use fast_glob::glob_match;
 
 assert!(glob_match("some/**/{a,b,c}/**/needle.txt", "some/path/a/to/the/needle.txt"));
 ```
@@ -19,7 +19,7 @@ assert!(glob_match("some/**/{a,b,c}/**/needle.txt", "some/path/a/to/the/needle.t
 Wildcard values can also be captured using the `glob_match_with_captures` function. This returns a `Vec` containing ranges within the path string that matched dynamic parts of the glob pattern. You can use these ranges to get slices from the original path string.
 
 ```rust
-use glob_match::glob_match_with_captures;
+use fast_glob::glob_match_with_captures;
 
 let glob = "some/**/{a,b,c}/**/needle.txt";
 let path = "some/path/a/to/the/needle.txt";
@@ -41,30 +41,10 @@ assert_eq!(result, vec!["path", "a", "to/the"]);
 | `!`     | When at the start of the glob, this negates the result. Multiple `!` characters negate the glob multiple times.                                                                                     |
 | `\`     | A backslash character may be used to escape any of the above special characters.                                                                                                                    |
 
-## Benchmarks
+## Bench
 
 ```
-globset                 time:   [35.176 µs 35.200 µs 35.235 µs]
-glob                    time:   [339.77 ns 339.94 ns 340.13 ns]
-glob_match              time:   [179.76 ns 179.96 ns 180.27 ns]
-```
-
-## Fuzzing
-
-You can fuzz `glob-match` itself using `cargo fuzz`. See the
-[Rust Fuzz Book](https://rust-fuzz.github.io/book/cargo-fuzz/setup.html) for
-guidance on setup and installation. Follow the Rust Fuzz Book for information on
-how to configure and run Fuzz steps.
-
-After discovering artifacts, use `cargo fuzz fmt [target] [artifact-path]` to
-get the original input back.
-
-```sh
-$ cargo fuzz fmt both_fuzz fuzz/artifacts/both_fuzz/slow-unit-LONG_HASH
-Output of `std::fmt::Debug`:
-
-Data {
-    pat: "some pattern",
-    input: "some input",
-}
+globset                 time:   [24.429 µs 24.522 µs 24.676 µs]
+glob                    time:   [335.71 ns 338.09 ns 341.18 ns]
+fast_glob               time:   [78.030 ns 78.237 ns 78.475 ns]
 ```
