@@ -1,5 +1,63 @@
+/*!
+An extremely fast glob matching library with support for wildcards, character classes, and brace expansion.
+
+* Zero allocations
+* Thousands of tests based on Bash and [micromatch](https://github.com/micromatch/micromatch)
+* Support for capturing matched ranges of wildcards
+* Linear time matching. No exponential backtracking
+* No regex compilation. Matching occurs on the glob pattern in place
+
+# Example
+
+Below an example shows how to use `glob_match` to match a single file path.
+
+```rust
+use fast_glob::glob_match;
+
+assert!(glob_match("some/**/{a,b,c}/**/needle.txt", "some/path/a/to/the/needle.txt"));
+```
+
+Wildcard values can also be captured using the `glob_match_with_captures` function.
+
+```rust
+use fast_glob::glob_match_with_captures;
+
+let glob = "some/**/{a,b,c}/**/needle.txt";
+let path = "some/path/a/to/the/needle.txt";
+let result = glob_match_with_captures(glob, path)
+  .map(|v| v.into_iter().map(|capture| &path[capture]).collect());
+
+assert_eq!(result, vec!["path", "a", "to/the"]);
+```
+
+# Syntax
+
+| Syntax  | Meaning                                                                                                                                                                                             |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `?`     | Matches any single character.                                                                                                                                                                       |
+| `*`     | Matches zero or more characters, except for path separators (e.g. `/`).                                                                                                                             |
+| `**`    | Matches zero or more characters, including path separators. Must match a complete path segment (i.e. followed by a `/` or the end of the pattern).                                                  |
+| `[ab]`  | Matches one of the characters contained in the brackets. Character ranges, e.g. `[a-z]` are also supported. Use `[!ab]` or `[^ab]` to match any character _except_ those contained in the brackets. |
+| `{a,b}` | Matches one of the patterns contained in the braces. Any of the wildcard characters can be used in the sub-patterns. Braces may be nested up to 10 levels deep.                                     |
+| `!`     | When at the start of the glob, this negates the result. Multiple `!` characters negate the glob multiple times.                                                                                     |
+| `\`     | A backslash character may be used to escape any of the above special characters.  
+
+# Bench
+
+Run `cargo bench` to obtain a performance comparison result.
+
+```
+globset                 time:   [24.429 µs 24.522 µs 24.676 µs]
+glob                    time:   [335.71 ns 338.09 ns 341.18 ns]
+fast_glob               time:   [78.030 ns 78.237 ns 78.475 ns]
+```
+*/
+
+#![deny(missing_docs)]
+
 use std::{ops::Range, path::is_separator};
 
+/// The current matching state.
 #[derive(Clone, Copy, Debug, Default)]
 struct State {
   // These store character indices into the glob and path strings.
@@ -14,6 +72,7 @@ struct State {
   capture_index: usize,
 }
 
+/// Wildcard state such as * or **.
 #[derive(Clone, Copy, Debug, Default)]
 struct Wildcard {
   // Using u32 rather than usize for these results in 10% faster performance.
@@ -22,6 +81,7 @@ struct Wildcard {
   capture_index: u32,
 }
 
+/// Result type of matching braces.
 #[derive(PartialEq)]
 enum BraceState {
   Comma,
@@ -29,18 +89,22 @@ enum BraceState {
   EndBrace,
 }
 
+/// Matching state stack of braces.
 struct BraceStack {
   stack: [State; 10],
   length: u32,
   longest_brace_match: u32,
 }
 
+/// Capture result type.
 type Capture = Range<usize>;
 
+/// Returns true if the glob matches the path given.
 pub fn glob_match(glob: &str, path: &str) -> bool {
   glob_match_internal(glob, path, None)
 }
 
+/// Returns the values captured which will be `None` if the glob doesn't match the path given.
 pub fn glob_match_with_captures<'a>(glob: &str, path: &'a str) -> Option<Vec<Capture>> {
   let mut captures = Vec::new();
   if glob_match_internal(glob, path, Some(&mut captures)) {

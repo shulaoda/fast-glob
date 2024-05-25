@@ -1,14 +1,18 @@
 [package]
 name = "fast-glob"
 version = "0.1.0"
-description = "An extremely fast glob matcher"
-repository = "https://github.com/shulaoda/fast-glob.git"
+edition = "2021"
+license = "MIT"
+
 authors = [
     "Devon Govett <devongovett@gmail.com>",
     "shulaoda <laipichan@qq.com>",
 ]
-license = "MIT"
-edition = "2021"
+categories = ["filesystem"]
+keywords = ["glob", "pattern", "walkdir"]
+documentation = "https://docs.rs/fast-glob"
+description = "An extremely fast glob matcher"
+repository = "https://github.com/shulaoda/fast-glob.git"
 
 [dev-dependencies]
 criterion = "0.5.1"
@@ -19,12 +23,11 @@ globset = "0.4.14"
 name = "test"
 path = "tests/test.rs"
 
-
 [[bench]]
 name = "bench"
 harness = false
 
 [profile.release]
 lto = true
-codegen-units = 1
 panic = 'abort'
+codegen-units = 1
