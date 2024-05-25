@@ -27,7 +27,7 @@ let path = "some/path/a/to/the/needle.txt";
 let result = glob_match_with_captures(glob, path)
   .map(|v| v.into_iter().map(|capture| &path[capture]).collect());
 
-assert_eq!(result, vec!["path", "a", "to/the"]);
+assert_eq!(result, Some(vec!["path", "a", "to/the"]));
 ```
 
 # Syntax
@@ -46,7 +46,7 @@ assert_eq!(result, vec!["path", "a", "to/the"]);
 
 Run `cargo bench` to obtain a performance comparison result.
 
-```
+```txt
 globset                 time:   [24.429 µs 24.522 µs 24.676 µs]
 glob                    time:   [335.71 ns 338.09 ns 341.18 ns]
 fast_glob               time:   [78.030 ns 78.237 ns 78.475 ns]

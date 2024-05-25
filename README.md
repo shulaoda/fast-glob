@@ -26,7 +26,7 @@ let path = "some/path/a/to/the/needle.txt";
 let result = glob_match_with_captures(glob, path)
   .map(|v| v.into_iter().map(|capture| &path[capture]).collect());
 
-assert_eq!(result, vec!["path", "a", "to/the"]);
+assert_eq!(result, Some(vec!["path", "a", "to/the"]));
 ```
 
 ## Syntax
