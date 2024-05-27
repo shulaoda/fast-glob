@@ -8,6 +8,8 @@ An extremely fast glob matching library which is forked from [`devongovett/glob-
 * Inheriting the excellent features of [`glob-match`](https://github.com/devongovett/glob-match)
 * Fixed matching issues with wildcard and globstar [`glob-match/issues#9`](https://github.com/devongovett/glob-match/issues/9)
 
+⚠️ There are some breaking changes in this crate, please check in this [PR#15](https://github.com/devongovett/glob-match/pull/15)
+
 ## Example
 
 ```rust
