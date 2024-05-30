@@ -227,60 +227,58 @@ fn glob_match_internal<'a>(
           }
         }
         b'[' if state.path_index < path.len() => {
-          if !is_separator(path[state.path_index] as char) {
+          state.glob_index += 1;
+          let c = path[state.path_index];
+
+          // Check if the character class is negated.
+          let mut negated = false;
+          if state.glob_index < glob.len() && matches!(glob[state.glob_index], b'^' | b'!') {
+            negated = true;
             state.glob_index += 1;
-            let c = path[state.path_index];
+          }
 
-            // Check if the character class is negated.
-            let mut negated = false;
-            if state.glob_index < glob.len() && matches!(glob[state.glob_index], b'^' | b'!') {
-              negated = true;
-              state.glob_index += 1;
+          // Try each range.
+          let mut first = true;
+          let mut is_match = false;
+          while state.glob_index < glob.len() && (first || glob[state.glob_index] != b']') {
+            let mut low = glob[state.glob_index];
+            if !unescape(&mut low, glob, &mut state.glob_index) {
+              // Invalid pattern!
+              return false;
             }
+            state.glob_index += 1;
 
-            // Try each range.
-            let mut first = true;
-            let mut is_match = false;
-            while state.glob_index < glob.len() && (first || glob[state.glob_index] != b']') {
-              let mut low = glob[state.glob_index];
-              if !unescape(&mut low, glob, &mut state.glob_index) {
+            // If there is a - and the following character is not ], read the range end character.
+            let high = if state.glob_index + 1 < glob.len()
+              && glob[state.glob_index] == b'-'
+              && glob[state.glob_index + 1] != b']'
+            {
+              state.glob_index += 1;
+              let mut high = glob[state.glob_index];
+              if !unescape(&mut high, glob, &mut state.glob_index) {
                 // Invalid pattern!
                 return false;
               }
               state.glob_index += 1;
+              high
+            } else {
+              low
+            };
 
-              // If there is a - and the following character is not ], read the range end character.
-              let high = if state.glob_index + 1 < glob.len()
-                && glob[state.glob_index] == b'-'
-                && glob[state.glob_index + 1] != b']'
-              {
-                state.glob_index += 1;
-                let mut high = glob[state.glob_index];
-                if !unescape(&mut high, glob, &mut state.glob_index) {
-                  // Invalid pattern!
-                  return false;
-                }
-                state.glob_index += 1;
-                high
-              } else {
-                low
-              };
-
-              if low <= c && c <= high {
-                is_match = true;
-              }
-              first = false;
+            if low <= c && c <= high {
+              is_match = true;
             }
-            if state.glob_index >= glob.len() {
-              // invalid pattern!
-              return false;
-            }
-            state.glob_index += 1;
-            if is_match != negated {
-              state.add_char_capture(&mut captures);
-              state.path_index += 1;
-              continue;
-            }
+            first = false;
+          }
+          if state.glob_index >= glob.len() {
+            // invalid pattern!
+            return false;
+          }
+          state.glob_index += 1;
+          if is_match != negated {
+            state.add_char_capture(&mut captures);
+            state.path_index += 1;
+            continue;
           }
         }
         b'{' if state.path_index < path.len() => {

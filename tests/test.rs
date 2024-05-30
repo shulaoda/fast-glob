@@ -1,4 +1,3 @@
-
 use fast_glob::*;
 
 #[cfg(test)]
@@ -337,7 +336,7 @@ mod tests {
     assert!(glob_match("[a-y]*[^c]", "bd"));
     assert!(glob_match("[a-y]*[^c]", "bb"));
     assert!(glob_match("[a-y]*[^c]", "bcd"));
-    assert!(!glob_match("[a-y]*[^c]", "bdir/"));
+    assert!(glob_match("[a-y]*[^c]", "bdir/"));
     assert!(!glob_match("[a-y]*[^c]", "Beware"));
     assert!(!glob_match("[a-y]*[^c]", "c"));
     assert!(glob_match("[a-y]*[^c]", "ca"));
@@ -552,7 +551,7 @@ mod tests {
   #[test]
   fn bash_slashmatch() {
     // assert!(!glob_match("f[^eiu][^eiu][^eiu][^eiu][^eiu]r", "foo/bar"));
-    assert!(!glob_match("foo[/]bar", "foo/bar"));
+    assert!(glob_match("foo[/]bar", "foo/bar"));
     assert!(glob_match("f[^eiu][^eiu][^eiu][^eiu][^eiu]r", "foo-bar"));
   }
 
