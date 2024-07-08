@@ -1,32 +1,48 @@
-use fast_glob::glob_match;
 use criterion::{criterion_group, criterion_main, Criterion};
 
-const GLOB: &'static str = "some/**/needle.txt";
+const GLOB_NORMAL: &'static str = "some/**/needle.txt";
+const GLOB_BRACES: &'static str = "some/**/{the,crazy}/?*.{png,txt}";
 const PATH: &'static str = "some/a/bigger/path/to/the/crazy/needle.txt";
 
-#[inline]
-fn glob(pat: &str, s: &str) -> bool {
-  let pat = glob::Pattern::new(pat).unwrap();
-  pat.matches(s)
+fn glob(b: &mut Criterion) {
+  b.bench_function("glob", |b| {
+    b.iter(|| assert!(glob::Pattern::new(GLOB_NORMAL).unwrap().matches(PATH)))
+  });
 }
 
-#[inline]
-fn globset(pat: &str, s: &str) -> bool {
-  let pat = globset::Glob::new(pat).unwrap().compile_matcher();
-  pat.is_match(s)
+fn mine(b: &mut Criterion) {
+  b.bench_function("mine_normal", |b| {
+    b.iter(|| assert!(fast_glob::glob_match(GLOB_NORMAL, PATH)))
+  });
 }
 
-fn mine_crate(b: &mut Criterion) {
-  b.bench_function("mine", |b| b.iter(|| assert!(glob_match(GLOB, PATH))));
+fn globset(b: &mut Criterion) {
+  b.bench_function("globset_normal", |b| {
+    b.iter(|| {
+      assert!(globset::Glob::new(GLOB_NORMAL)
+        .unwrap()
+        .compile_matcher()
+        .is_match(PATH));
+    })
+  });
 }
 
-fn glob_crate(b: &mut Criterion) {
-  b.bench_function("glob_crate", |b| b.iter(|| assert!(glob(GLOB, PATH))));
+fn mine_braces(b: &mut Criterion) {
+  b.bench_function("mine_braces", |b| {
+    b.iter(|| assert!(fast_glob::glob_match_with_brace(GLOB_BRACES, PATH)));
+  });
 }
 
-fn globset_crate(b: &mut Criterion) {
-  b.bench_function("globset_crate", |b| b.iter(|| assert!(globset(GLOB, PATH))));
+fn globset_brace(b: &mut Criterion) {
+  b.bench_function("globset_braces", |b| {
+    b.iter(|| {
+      assert!(globset::Glob::new(GLOB_BRACES)
+        .unwrap()
+        .compile_matcher()
+        .is_match(PATH));
+    })
+  });
 }
 
-criterion_group!(benches, globset_crate, glob_crate, mine_crate);
+criterion_group!(benches, glob, mine, globset, mine_braces, globset_brace);
 criterion_main!(benches);
