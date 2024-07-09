@@ -6,9 +6,9 @@ A high-performance glob matching crate for Rust, originally forked from [`devong
 
 **Key Features:**
 
-* Up to 60% performance improvement.
-* Support for more complex and efficient brace expansion.
-* Fixed matching issues with wildcard and globstar [`glob-match/issues#9`](https://github.com/devongovett/glob-match/issues/9).
+- Up to 60% performance improvement.
+- Support for more complex and efficient brace expansion.
+- Fixed matching issues with wildcard and globstar [`glob-match/issues#9`](https://github.com/devongovett/glob-match/issues/9).
 
 ## Examples
 
@@ -19,7 +19,7 @@ Note that simple matching does not support `brace expansion`, but all other synt
 ```rust
 use fast_glob::glob_match;
 
-let glob = "some/**/*ne[d-f]dle?txt";
+let glob = "some/**/n*d[k-m]e?txt";
 let path = "some/a/bigger/path/to/the/crazy/needle.txt";
 
 assert!(glob_match(glob, path));
@@ -59,7 +59,7 @@ assert!(glob.is_match("name.txt"));
 | `?`     | Matches any single character.                                                                                                                                                                       |
 | `*`     | Matches zero or more characters, except for path separators (e.g. `/`).                                                                                                                             |
 | `**`    | Matches zero or more characters, including path separators. Must match a complete path segment (i.e. followed by a `/` or the end of the pattern).                                                  |
-| `[ab]`  | Matches one of the characters contained in the brackets. Character ranges, e.g. `[a-z]` are also supported. Use `[!ab]` or `[^ab]` to match any character *except* those contained in the brackets. |
+| `[ab]`  | Matches one of the characters contained in the brackets. Character ranges, e.g. `[a-z]` are also supported. Use `[!ab]` or `[^ab]` to match any character _except_ those contained in the brackets. |
 | `{a,b}` | Matches one of the patterns contained in the braces. Any of the wildcard characters can be used in the sub-patterns. Braces may be nested up to 10 levels deep.                                     |
 | `!`     | When at the start of the glob, this negates the result. Multiple `!` characters negate the glob multiple times.                                                                                     |
 | `\`     | A backslash character may be used to escape any of the above special characters.                                                                                                                    |
@@ -69,15 +69,15 @@ assert!(glob.is_match("name.txt"));
 ### Test Case 1
 
 ```rust
-const GLOB: &'static str = "some/**/needle.txt";
+const GLOB: &'static str = "some/**/n*d[k-m]e?txt";
 const PATH: &'static str = "some/a/bigger/path/to/the/crazy/needle.txt";
 ```
 
 ```
-mine                       time:   [- µs - µs - µs]
-glob                       time:   [- µs - µs - µs]
-globset                    time:   [- ns - ns - ns]
-glob_match                 time:   [- ns - ns - ns]
+mine                       time:   [65.458 ns 65.560 ns 65.681 ns]
+glob                       time:   [373.29 ns 374.18 ns 375.63 ns]
+globset                    time:   [32.505 µs 32.556 µs 32.618 µs]
+glob_match                 time:   [188.00 ns 188.59 ns 189.38 ns]
 ```
 
 ### Test Case 2
@@ -88,9 +88,9 @@ const PATH: &'static str = "some/a/bigger/path/to/the/crazy/needle.txt";
 ```
 
 ```
-mine                       time:   [- ns - ns - ns]
-globset                    time:   [- ns - ns - ns]
-glob_match                 time:   [- ns - ns - ns]
+mine                       time:   [449.41 ns 451.05 ns 453.23 ns]
+globset                    time:   [41.445 µs 41.661 µs 41.940 µs]
+glob_match                 time:   [189.06 ns 189.85 ns 190.75 nS]
 ```
 
 ## Q\&A
@@ -99,8 +99,8 @@ glob_match                 time:   [- ns - ns - ns]
 
 `glob_match` is unable to handle complex brace expansions. Below are some failed examples:
 
-* `glob_match("{a/b,a/b/c}/c", "a/b/c")`
-* `glob_match("**/foo{bar,b*z}", "foobuzz")`
-* `glob_match("**/{a,b}/c.png", "some/a/b/c.png")`
+- `glob_match("{a/b,a/b/c}/c", "a/b/c")`
+- `glob_match("**/foo{bar,b*z}", "foobuzz")`
+- `glob_match("**/{a,b}/c.png", "some/a/b/c.png")`
 
 Due to these limitations, `brace expansion` requires a different implementation that can handle the complexity of such patterns, resulting in some performance trade-offs.

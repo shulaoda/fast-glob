@@ -16,8 +16,8 @@
 //! ```rust
 //! use fast_glob::glob_match;
 //!
-//! let glob = "**/*.txt";
-//! let path = "file.txt";
+//! let glob = "some/**/n*d[k-m]e?txt";
+//! let path = "some/a/bigger/path/to/the/crazy/needle.txt";
 //!
 //! assert!(glob_match(glob, path));
 //! ```
