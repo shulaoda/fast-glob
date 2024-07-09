@@ -11,13 +11,14 @@ authors = [
 categories = ["filesystem"]
 keywords = ["glob", "pattern", "walkdir"]
 documentation = "https://docs.rs/fast-glob"
-description = "An extremely fast glob matcher"
+description = "A high-performance glob matching crate for Rust"
 repository = "https://github.com/shulaoda/fast-glob.git"
 
 [dev-dependencies]
 criterion = "0.5.1"
 glob = "0.3.1"
 globset = "0.4.14"
+glob-match = "0.2.1"
 
 [[test]]
 name = "test"
