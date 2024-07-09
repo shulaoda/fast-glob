@@ -1,8 +1,8 @@
 #[derive(Debug, Default)]
-pub struct Pattern {
+pub(crate) struct Pattern {
   pub value: Vec<u8>,
-  pub(crate) branch: Vec<(u8, u8)>,
-  pub(crate) shadow: Vec<(usize, usize)>,
+  pub branch: Vec<(u8, u8)>,
+  pub shadow: Vec<(usize, usize)>,
 }
 
 impl Pattern {
