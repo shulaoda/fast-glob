@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
-const GLOB_NORMAL: &'static str = "some/**/*ne[d-f]dle?txt";
+const GLOB_NORMAL: &'static str = "some/**/n*d[k-m]e?txt";
 const GLOB_BRACES: &'static str = "some/**/{the,crazy}/?*.{png,txt}";
 const PATH: &'static str = "some/a/bigger/path/to/the/crazy/needle.txt";
 
