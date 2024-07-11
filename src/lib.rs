@@ -100,6 +100,7 @@ impl Glob {
     value.push(b'}');
 
     if let Some(mut pattern) = Pattern::new(&value[1..value.len() - 1]) {
+      pattern.value.extend_from_slice(&value[1..value.len() - 1]);
       pattern.branch.push((0, 1));
       pattern.shadow.push((0, 0));
       return Some(Glob {
@@ -212,6 +213,10 @@ pub fn glob_match_with_brace(glob: &str, path: &str) -> bool {
   let path = path.as_bytes();
 
   if let Some(pattern) = &mut Pattern::new(glob) {
+    if pattern.branch.is_empty() {
+      return glob_match_normal(glob, path).0;
+    }
+
     loop {
       let (result, longest_index) = glob_match_normal(&pattern.value, path);
 

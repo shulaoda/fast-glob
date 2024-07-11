@@ -74,23 +74,23 @@ const PATH: &'static str = "some/a/bigger/path/to/the/crazy/needle.txt";
 ```
 
 ```
-mine                       time:   [65.458 ns 65.560 ns 65.681 ns]
-glob                       time:   [373.29 ns 374.18 ns 375.63 ns]
-globset                    time:   [32.505 µs 32.556 µs 32.618 µs]
-glob_match                 time:   [188.00 ns 188.59 ns 189.38 ns]
+mine                       time:   [63.347 ns 63.389 ns 63.450 ns]
+glob                       time:   [380.53 ns 382.89 ns 386.44 ns]
+globset                    time:   [27.686 µs 27.696 µs 27.707 µs]
+glob_match                 time:   [197.79 ns 198.67 ns 199.79 ns]
 ```
 
 ### Test Case 2
 
 ```rust
-const GLOB: &'static str = "some/**/{the,crazy}/?*.{png,txt}";
+const GLOB: &'static str = "some/**/{tob,crazy}/?*.{png,txt}";
 const PATH: &'static str = "some/a/bigger/path/to/the/crazy/needle.txt";
 ```
 
 ```
-mine                       time:   [449.41 ns 451.05 ns 453.23 ns]
-globset                    time:   [41.445 µs 41.661 µs 41.940 µs]
-glob_match                 time:   [189.06 ns 189.85 ns 190.75 nS]
+mine                       time:   [403.06 ns 405.17 ns 407.76 ns]
+globset                    time:   [36.929 µs 37.284 µs 37.731 µs]
+glob_match                 time:   [367.10 ns 369.04 ns 371.61 ns]
 ```
 
 ## Q\&A

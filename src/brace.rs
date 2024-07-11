@@ -46,7 +46,7 @@ impl Pattern {
   pub fn new(glob: &[u8]) -> Option<Self> {
     if let Some(branch) = Self::parse(glob) {
       if branch.is_empty() {
-        let value = glob.to_vec();
+        let value = Vec::new();
         let shadow = Vec::new();
 
         return Some(Pattern {
