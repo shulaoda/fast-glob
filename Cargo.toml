@@ -32,6 +32,3 @@ harness = false
 lto = true
 panic = 'abort'
 codegen-units = 1
-
-[dependencies]
-criterion = "0.5.1"
