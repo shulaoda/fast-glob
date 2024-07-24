@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use codspeed_criterion_compat::{criterion_group, criterion_main, Criterion};
 
 fn simple_match(c: &mut Criterion) {
   let mut group = c.benchmark_group("Simple Match");
@@ -45,7 +45,7 @@ fn brace_expansion(c: &mut Criterion) {
     })
   });
 
-  group.bench_function("glob-match", |b: &mut criterion::Bencher| {
+  group.bench_function("glob-match", |b| {
     b.iter(|| assert!(glob_match::glob_match(GLOB, PATH)))
   });
 
