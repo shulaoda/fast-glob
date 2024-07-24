@@ -4,12 +4,9 @@ version = "0.3.2"
 edition = "2021"
 license = "MIT"
 
-authors = [
-    "Devon Govett <devongovett@gmail.com>",
-    "shulaoda <laipichan@qq.com>",
-]
-categories = ["filesystem"]
+authors = ["shulaoda <laipichan@qq.com>"]
 keywords = ["glob", "pattern", "walkdir"]
+categories = ["filesystem"]
 documentation = "https://docs.rs/fast-glob"
 description = "A high-performance glob matching crate for Rust"
 repository = "https://github.com/shulaoda/fast-glob.git"

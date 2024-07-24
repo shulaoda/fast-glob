@@ -2,13 +2,12 @@
 
 ## Introduce
 
-A high-performance glob matching crate for Rust, originally forked from [`devongovett/glob-match`](https://github.com/devongovett/glob-match). Since the original repository hasn't been maintained for some time, I will continue to maintain it until the issues has been addressed.
+A high-performance glob matching crate for Rust based on [`devongovett/glob-match`](https://github.com/devongovett/glob-match). 
 
 **Key Features:**
 
 - Up to 60% performance improvement.
-- Support for more complex and efficient brace expansion.
-- Fixed matching issues with wildcard and globstar [`glob-match/issues#9`](https://github.com/devongovett/glob-match/issues/9).
+- Supports more complete and well-rounded features.
 
 ## Examples
 
@@ -93,7 +92,7 @@ globset                    time:   [36.929 µs 37.284 µs 37.731 µs]
 glob_match                 time:   [367.10 ns 369.04 ns 371.61 ns]
 ```
 
-## Q\&A
+## FAQ
 
 ### Why not use the more efficient `glob_match` for brace expansion?
 
@@ -104,3 +103,8 @@ glob_match                 time:   [367.10 ns 369.04 ns 371.61 ns]
 - `glob_match("**/{a,b}/c.png", "some/a/b/c.png")`
 
 Due to these limitations, `brace expansion` requires a different implementation that can handle the complexity of such patterns, resulting in some performance trade-offs.
+
+
+## Credits
+
+- The [glob-match](https://github.com/devongovett/glob-match) project created by [@devongovett](https://github.com/devongovett) which is an extremely fast glob matching library in Rust.

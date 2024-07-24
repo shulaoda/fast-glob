@@ -1,3 +1,12 @@
+/**
+ * The following code is modified based on
+ * https://github.com/devongovett/glob-match/blob/d5a6c67/src/lib.rs
+ *
+ * MIT Licensed
+ * Copyright (c) 2023 Devon Govett
+ * https://github.com/devongovett/glob-match/tree/main/LICENSE
+ */
+
 use std::path::is_separator;
 
 #[derive(Clone, Copy, Debug, Default)]
