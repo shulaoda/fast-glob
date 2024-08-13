@@ -99,10 +99,7 @@ impl Glob {
     value.extend(glob.as_bytes());
     value.push(b'}');
 
-    if let Some(mut pattern) = Pattern::new(&value[1..value.len() - 1]) {
-      pattern.value.extend_from_slice(&value[1..value.len() - 1]);
-      pattern.branch.push((0, 1));
-      pattern.shadow.push((0, 0));
+    if let Some(pattern) = Pattern::new(&value) {
       return Some(Glob {
         glob: value,
         pattern,
