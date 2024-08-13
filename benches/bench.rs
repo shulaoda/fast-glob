@@ -10,6 +10,11 @@ fn simple_match(c: &mut Criterion) {
     b.iter(|| assert!(glob::Pattern::new(GLOB).unwrap().matches(PATH)))
   });
 
+  group.bench_function("glob-pre-compiled", |b| {
+    let matcher = glob::Pattern::new(GLOB).unwrap();
+    b.iter(|| assert!(matcher.matches(PATH)))
+  });
+
   group.bench_function("globset", |b| {
     b.iter(|| {
       assert!(globset::Glob::new(GLOB)
@@ -17,6 +22,11 @@ fn simple_match(c: &mut Criterion) {
         .compile_matcher()
         .is_match(PATH));
     })
+  });
+
+  group.bench_function("globset-pre-compiled", |b| {
+    let matcher = globset::Glob::new(GLOB).unwrap().compile_matcher();
+    b.iter(|| assert!(matcher.is_match(PATH)))
   });
 
   group.bench_function("glob-match", |b| {
@@ -43,6 +53,11 @@ fn brace_expansion(c: &mut Criterion) {
         .compile_matcher()
         .is_match(PATH));
     })
+  });
+
+  group.bench_function("globset-pre-compiled", |b| {
+    let matcher = globset::Glob::new(GLOB).unwrap().compile_matcher();
+    b.iter(|| assert!(matcher.is_match(PATH)))
   });
 
   group.bench_function("glob-match", |b| {
