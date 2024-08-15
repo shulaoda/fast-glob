@@ -73,10 +73,12 @@ const PATH: &'static str = "some/a/bigger/path/to/the/crazy/needle.txt";
 ```
 
 ```
-mine                       time:   [63.347 ns 63.389 ns 63.450 ns]
-glob                       time:   [380.53 ns 382.89 ns 386.44 ns]
-globset                    time:   [27.686 µs 27.696 µs 27.707 µs]
-glob_match                 time:   [197.79 ns 198.67 ns 199.79 ns]
+mine                       time:   [75.860 ns 76.625 ns 77.468 ns]
+glob                       time:   [369.87 ns 376.28 ns 383.55 ns]
+globset                    time:   [21.077 µs 21.234 µs 21.458 µs]
+glob_match                 time:   [192.68 ns 193.82 ns 195.02 ns]
+glob_pre_compiled          time:   [86.975 ns 87.593 ns 88.182 ns]
+globset_pre_compiled       time:   [42.360 ns 42.574 ns 42.803 ns]
 ```
 
 ### Test Case 2
@@ -87,9 +89,10 @@ const PATH: &'static str = "some/a/bigger/path/to/the/crazy/needle.txt";
 ```
 
 ```
-mine                       time:   [403.06 ns 405.17 ns 407.76 ns]
-globset                    time:   [36.929 µs 37.284 µs 37.731 µs]
-glob_match                 time:   [367.10 ns 369.04 ns 371.61 ns]
+mine                       time:   [487.75 ns 491.41 ns 496.32 ns]
+globset                    time:   [31.717 µs 31.857 µs 32.062 µs]
+glob_match                 time:   [391.12 ns 394.70 ns 399.05 ns]
+globset_pre_compiled       time:   [42.726 ns 42.828 ns 42.954 ns]
 ```
 
 ## FAQ
