@@ -65,7 +65,7 @@ fn brace_expansion(c: &mut Criterion) {
   });
 
   group.bench_function("fast-glob", |b| {
-    b.iter(|| assert!(fast_glob::glob_match_with_brace(GLOB, PATH)));
+    b.iter(|| assert!(fast_glob::glob_match(GLOB, PATH)));
   });
 
   group.finish();
