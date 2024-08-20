@@ -37,22 +37,17 @@
 //! For detailed usage and API reference, refer to the specific function and struct documentation.
 //!
 //! For any issues or contributions, please visit the [GitHub repository](https://github.com/shulaoda/fast-glob).
-//!
 
-/// Performs glob pattern matching for a simple glob pattern.
-///
-/// Returns `true` if `glob` matches `path`, `false` otherwise.
-///
-/// # Example
-///
-/// ```
-/// use fast_glob::glob_match;
-///
-/// let glob = "**/*.txt";
-/// let path = "file.txt";
-///
-/// assert!(glob_match(glob, path));
-/// ```
+/**
+ * The following code is modified based on
+ * https://github.com/devongovett/glob-match/blob/d5a6c67/src/lib.rs
+ *
+ * MIT Licensed
+ * Copyright (c) 2023 Devon Govett
+ * https://github.com/devongovett/glob-match/tree/main/LICENSE
+ */
+use std::path::is_separator;
+
 pub fn glob_match(glob: &str, path: &str) -> bool {
   let glob = glob.as_bytes();
   let path = path.as_bytes();
@@ -72,16 +67,6 @@ pub fn glob_match(glob: &str, path: &str) -> bool {
     matched
   }
 }
-
-/**
- * The following code is modified based on
- * https://github.com/devongovett/glob-match/blob/d5a6c67/src/lib.rs
- *
- * MIT Licensed
- * Copyright (c) 2023 Devon Govett
- * https://github.com/devongovett/glob-match/tree/main/LICENSE
- */
-use std::path::is_separator;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct State {
