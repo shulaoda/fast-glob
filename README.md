@@ -10,11 +10,6 @@ A high-performance glob matching crate for Rust based on [`devongovett/glob-matc
 - Supports more complete and well-rounded features.
 
 ## Examples
-
-### Simple Match
-
-Note that simple matching does not support `brace expansion`, but all other syntaxes do.
-
 ```rust
 use fast_glob::glob_match;
 
@@ -22,33 +17,6 @@ let glob = "some/**/n*d[k-m]e?txt";
 let path = "some/a/bigger/path/to/the/crazy/needle.txt";
 
 assert!(glob_match(glob, path));
-```
-
-### Brace Expansion
-
-Brace expansion is supported by using `glob_match_with_brace`. While the performance is lower than simple match, some performance loss is inevitable due to the complexity of brace expansion.
-
-```rust
-use fast_glob::glob_match_with_brace;
-
-let glob = "some/**/{the,crazy}/?*.{png,txt}";
-let path = "some/a/bigger/path/to/the/crazy/needle.txt";
-
-assert!(glob_match_with_brace(glob, path));
-```
-
-### Multi-Pattern Matching
-
-You can build a matcher like `globset` and add multiple patterns to match.
-
-```rust
-use fast_glob::Glob;
-
-// let mut glob = Glob::new(glob);
-let mut glob = Glob::default();
-
-assert!(glob.add("*.txt"));
-assert!(glob.is_match("name.txt"));
 ```
 
 ## Syntax
@@ -73,12 +41,12 @@ const PATH: &'static str = "some/a/bigger/path/to/the/crazy/needle.txt";
 ```
 
 ```
-mine                       time:   [75.860 ns 76.625 ns 77.468 ns]
-glob                       time:   [369.87 ns 376.28 ns 383.55 ns]
-globset                    time:   [21.077 µs 21.234 µs 21.458 µs]
-glob_match                 time:   [192.68 ns 193.82 ns 195.02 ns]
-glob_pre_compiled          time:   [86.975 ns 87.593 ns 88.182 ns]
-globset_pre_compiled       time:   [42.360 ns 42.574 ns 42.803 ns]
+mine                       time:   [83.742 ns 84.400 ns 85.132 ns]
+glob                       time:   [386.77 ns 396.19 ns 406.87 ns]
+globset                    time:   [21.010 µs 21.114 µs 21.225 µs]
+glob_match                 time:   [195.58 ns 196.80 ns 198.24 ns]
+glob_pre_compiled          time:   [88.180 ns 90.274 ns 92.158 ns]
+globset_pre_compiled       time:   [42.680 ns 42.778 ns 42.911 ns]
 ```
 
 ### Test Case 2
@@ -89,10 +57,10 @@ const PATH: &'static str = "some/a/bigger/path/to/the/crazy/needle.txt";
 ```
 
 ```
-mine                       time:   [487.75 ns 491.41 ns 496.32 ns]
-globset                    time:   [31.717 µs 31.857 µs 32.062 µs]
-glob_match                 time:   [391.12 ns 394.70 ns 399.05 ns]
-globset_pre_compiled       time:   [42.726 ns 42.828 ns 42.954 ns]
+mine                       time:   [309.80 ns 311.56 ns 313.25 ns]
+globset                    time:   [31.456 µs 31.502 µs 31.559 µs]
+glob_match                 time:   [384.21 ns 384.71 ns 385.15 ns]
+globset_pre_compiled       time:   [42.505 ns 42.526 ns 42.551 ns]
 ```
 
 ## FAQ
