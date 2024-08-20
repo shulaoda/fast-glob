@@ -243,6 +243,7 @@ impl State {
     return false;
   }
 
+  #[inline(always)]
   fn glob_match_from(&mut self, glob: &[u8], path: &[u8]) -> bool {
     while self.glob_index < glob.len() || self.path_index < path.len() {
       if self.glob_index < glob.len() {
