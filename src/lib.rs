@@ -48,6 +48,21 @@
  */
 use std::path::is_separator;
 
+#[derive(Clone, Copy, Debug, Default)]
+struct State {
+  path_index: usize,
+  glob_index: usize,
+
+  wildcard: Wildcard,
+  globstar: Wildcard,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct Wildcard {
+  glob_index: usize,
+  path_index: usize,
+}
+
 pub fn glob_match(glob: &str, path: &str) -> bool {
   let glob = glob.as_bytes();
   let path = path.as_bytes();
@@ -66,21 +81,6 @@ pub fn glob_match(glob: &str, path: &str) -> bool {
   } else {
     matched
   }
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-pub(crate) struct State {
-  pub(crate) path_index: usize,
-  pub(crate) glob_index: usize,
-
-  wildcard: Wildcard,
-  globstar: Wildcard,
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-struct Wildcard {
-  glob_index: usize,
-  path_index: usize,
 }
 
 #[inline(always)]
@@ -168,9 +168,9 @@ impl State {
     let mut brace_depth = 0;
     let mut in_brackets = false;
 
-    let open_brace_index = self.glob_index;
     let mut close_brace_index = 0;
     let mut glob_index = self.glob_index;
+
     while glob_index < glob.len() {
       match glob[glob_index] {
         b'{' if !in_brackets => brace_depth += 1,
@@ -188,14 +188,17 @@ impl State {
       }
       glob_index += 1;
     }
+
     if brace_depth != 0 {
       // Invalid pattern!
       return false;
     }
 
-    let mut buffer = Vec::with_capacity(glob.len());
+    let open_brace_index = self.glob_index;
 
+    let mut buffer = Vec::with_capacity(glob.len());
     let mut branch_index = 0;
+
     while self.glob_index < glob.len() {
       match glob[self.glob_index] {
         b'{' if !in_brackets => {
@@ -240,6 +243,7 @@ impl State {
       }
       self.glob_index += 1;
     }
+
     return false;
   }
 
@@ -253,37 +257,37 @@ impl State {
             if is_globstar {
               self.skip_globstars(glob);
             }
-  
+
             self.wildcard.glob_index = self.glob_index;
             self.wildcard.path_index = self.path_index + 1;
-  
+
             let mut in_globstar = false;
             if is_globstar {
               self.glob_index += 2;
-  
+
               let is_end_invalid = self.glob_index != glob.len();
-  
+
               if (self.glob_index < 3 || glob[self.glob_index - 3] == b'/')
                 && (!is_end_invalid || glob[self.glob_index] == b'/')
               {
                 if is_end_invalid {
                   self.glob_index += 1;
                 }
-  
+
                 self.skip_to_separator(path, is_end_invalid);
                 in_globstar = true;
               }
             } else {
               self.glob_index += 1;
             }
-  
+
             if !in_globstar
               && self.path_index < path.len()
               && is_separator(path[self.path_index] as char)
             {
               self.wildcard = self.globstar;
             }
-  
+
             continue;
           }
           b'?' if self.path_index < path.len() => {
@@ -295,13 +299,13 @@ impl State {
           }
           b'[' if self.path_index < path.len() => {
             self.glob_index += 1;
-  
+
             let mut negated = false;
             if self.glob_index < glob.len() && matches!(glob[self.glob_index], b'^' | b'!') {
               negated = true;
               self.glob_index += 1;
             }
-  
+
             let mut first = true;
             let mut is_match = false;
             let c = path[self.path_index];
@@ -310,37 +314,37 @@ impl State {
               if !unescape(&mut low, glob, self) {
                 return false;
               }
-  
+
               self.glob_index += 1;
-  
+
               let high = if self.glob_index + 1 < glob.len()
                 && glob[self.glob_index] == b'-'
                 && glob[self.glob_index + 1] != b']'
               {
                 self.glob_index += 1;
-  
+
                 let mut high = glob[self.glob_index];
                 if !unescape(&mut high, glob, self) {
                   return false;
                 }
-  
+
                 self.glob_index += 1;
                 high
               } else {
                 low
               };
-  
+
               if low <= c && c <= high {
                 is_match = true;
               }
-  
+
               first = false;
             }
-  
+
             if self.glob_index >= glob.len() {
               return false;
             }
-  
+
             self.glob_index += 1;
             if is_match != negated {
               self.path_index += 1;
@@ -354,36 +358,36 @@ impl State {
             if !unescape(&mut c, glob, self) {
               return false;
             }
-  
+
             let is_match = if c == b'/' {
               is_separator(path[self.path_index] as char)
             } else {
               path[self.path_index] == c
             };
-  
+
             if is_match {
               self.glob_index += 1;
               self.path_index += 1;
-  
+
               if c == b'/' {
                 self.wildcard = self.globstar;
               }
-  
+
               continue;
             }
           }
           _ => {}
         }
       }
-  
+
       if self.wildcard.path_index > 0 && self.wildcard.path_index <= path.len() {
         self.backtrack();
         continue;
       }
-  
+
       return false;
     }
-  
+
     return true;
   }
 }
