@@ -59,8 +59,8 @@ struct State {
 
 #[derive(Clone, Copy, Debug, Default)]
 struct Wildcard {
-  glob_index: usize,
-  path_index: usize,
+  glob_index: u32,
+  path_index: u32,
 }
 
 pub fn glob_match(glob: &str, path: &str) -> bool {
@@ -105,8 +105,8 @@ fn unescape(c: &mut u8, glob: &[u8], state: &mut State) -> bool {
 impl State {
   #[inline(always)]
   fn backtrack(&mut self) {
-    self.glob_index = self.wildcard.glob_index;
-    self.path_index = self.wildcard.path_index;
+    self.glob_index = self.wildcard.glob_index as usize;
+    self.path_index = self.wildcard.path_index as usize;
   }
 
   #[inline(always)]
@@ -140,7 +140,7 @@ impl State {
       path_index += 1;
     }
 
-    self.wildcard.path_index = path_index;
+    self.wildcard.path_index = path_index as u32;
     self.globstar = self.wildcard;
   }
 
@@ -157,9 +157,9 @@ impl State {
     buffer.extend_from_slice(&glob[branch_index..self.glob_index]);
     buffer.extend_from_slice(&glob[close_brace_index + 1..]);
 
-    let mut branch_state = self.clone();
+    let mut branch_state = *self;
     branch_state.glob_index = open_brace_index;
-    let matched = branch_state.glob_match_from(&buffer, path);
+    let matched = branch_state.glob_match_from(buffer, path);
     buffer.clear();
     matched
   }
@@ -244,7 +244,7 @@ impl State {
       self.glob_index += 1;
     }
 
-    return false;
+    false
   }
 
   #[inline(always)]
@@ -258,8 +258,8 @@ impl State {
               self.skip_globstars(glob);
             }
 
-            self.wildcard.glob_index = self.glob_index;
-            self.wildcard.path_index = self.path_index + 1;
+            self.wildcard.glob_index = self.glob_index as u32;
+            self.wildcard.path_index = self.path_index as u32 + 1;
 
             let mut in_globstar = false;
             if is_globstar {
@@ -380,7 +380,7 @@ impl State {
         }
       }
 
-      if self.wildcard.path_index > 0 && self.wildcard.path_index <= path.len() {
+      if self.wildcard.path_index > 0 && self.wildcard.path_index <= path.len() as u32 {
         self.backtrack();
         continue;
       }
@@ -388,6 +388,6 @@ impl State {
       return false;
     }
 
-    return true;
+    true
   }
 }
