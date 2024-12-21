@@ -191,7 +191,12 @@ impl State {
     matched
   }
 
-  fn match_brace(&mut self, glob: &[u8], path: &[u8], brace_stack: &mut ArrayVec<(u32, u32), 10>,) -> bool {
+  fn match_brace(
+    &mut self,
+    glob: &[u8],
+    path: &[u8],
+    brace_stack: &mut ArrayVec<(u32, u32), 10>,
+  ) -> bool {
     let mut brace_depth = 0;
     let mut in_brackets = false;
 
