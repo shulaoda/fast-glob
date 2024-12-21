@@ -65,6 +65,8 @@ struct Wildcard {
   path_index: u32,
 }
 
+type BraceStack = ArrayVec<(u32, u32), 16>;
+
 pub fn glob_match(glob: &str, path: &str) -> bool {
   let glob = glob.as_bytes();
   let path = path.as_bytes();
@@ -77,7 +79,7 @@ pub fn glob_match(glob: &str, path: &str) -> bool {
     state.glob_index += 1;
   }
 
-  let mut brace_stack = ArrayVec::<_, 10>::new();
+  let mut brace_stack = ArrayVec::<_, 16>::new();
   let matched = state.glob_match_from(glob, path, &mut brace_stack);
   if negated {
     !matched
@@ -176,7 +178,7 @@ impl State {
     path: &[u8],
     open_brace_index: usize,
     branch_index: usize,
-    brace_stack: &mut ArrayVec<(u32, u32), 10>,
+    brace_stack: &mut BraceStack,
   ) -> bool {
     brace_stack.push((open_brace_index as u32, branch_index as u32));
 
@@ -190,12 +192,7 @@ impl State {
     matched
   }
 
-  fn match_brace(
-    &mut self,
-    glob: &[u8],
-    path: &[u8],
-    brace_stack: &mut ArrayVec<(u32, u32), 10>,
-  ) -> bool {
+  fn match_brace(&mut self, glob: &[u8], path: &[u8], brace_stack: &mut BraceStack) -> bool {
     let mut brace_depth = 0;
     let mut in_brackets = false;
 
@@ -238,12 +235,7 @@ impl State {
   }
 
   #[inline(always)]
-  fn glob_match_from(
-    &mut self,
-    glob: &[u8],
-    path: &[u8],
-    brace_stack: &mut ArrayVec<(u32, u32), 10>,
-  ) -> bool {
+  fn glob_match_from(&mut self, glob: &[u8], path: &[u8], brace_stack: &mut BraceStack) -> bool {
     while self.glob_index < glob.len() || self.path_index < path.len() {
       if self.glob_index < glob.len() {
         match glob[self.glob_index] {
