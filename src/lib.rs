@@ -83,11 +83,8 @@ pub fn glob_match(glob: &str, path: &str) -> bool {
 
   let mut brace_stack = ArrayVec::<_, 10>::new();
   let matched = state.glob_match_from(glob, path, &mut brace_stack);
-  if negated {
-    !matched
-  } else {
-    matched
-  }
+
+  negated ^ matched
 }
 
 #[inline(always)]
