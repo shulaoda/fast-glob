@@ -54,6 +54,7 @@ use arrayvec::ArrayVec;
 struct State {
   path_index: usize,
   glob_index: usize,
+  brace_depth: usize,
 
   wildcard: Wildcard,
   globstar: Wildcard,
@@ -63,9 +64,10 @@ struct State {
 struct Wildcard {
   glob_index: u32,
   path_index: u32,
+  brace_depth: u32,
 }
 
-type BraceStack = ArrayVec<(u32, u32), 16>;
+type BraceStack = ArrayVec<(u32, u32), 10>;
 
 pub fn glob_match(glob: &str, path: &str) -> bool {
   let glob = glob.as_bytes();
@@ -79,7 +81,7 @@ pub fn glob_match(glob: &str, path: &str) -> bool {
     state.glob_index += 1;
   }
 
-  let mut brace_stack = ArrayVec::<_, 16>::new();
+  let mut brace_stack = ArrayVec::<_, 10>::new();
   let matched = state.glob_match_from(glob, path, &mut brace_stack);
   if negated {
     !matched
@@ -112,6 +114,7 @@ impl State {
   fn backtrack(&mut self) {
     self.glob_index = self.wildcard.glob_index as usize;
     self.path_index = self.wildcard.path_index as usize;
+    self.brace_depth = self.wildcard.brace_depth as usize;
   }
 
   #[inline(always)]
@@ -150,15 +153,14 @@ impl State {
   }
 
   #[inline(always)]
-  fn skip_branch(&mut self, glob: &[u8], brace_stack: &mut [(u32, u32)]) {
-    let mut brace_num = brace_stack.len();
+  fn skip_branch(&mut self, glob: &[u8]) {
     let mut in_brackets = false;
     while self.glob_index < glob.len() {
       match glob[self.glob_index] {
-        b'{' if !in_brackets => brace_num += 1,
+        b'{' if !in_brackets => self.brace_depth += 1,
         b'}' if !in_brackets => {
-          brace_num -= 1;
-          if brace_num == 0 {
+          self.brace_depth -= 1;
+          if self.brace_depth == 0 {
             self.glob_index += 1;
             return;
           }
@@ -183,7 +185,8 @@ impl State {
     brace_stack.push((open_brace_index as u32, branch_index as u32));
 
     let mut branch_state = self.clone();
-    branch_state.glob_index = open_brace_index;
+    branch_state.glob_index = branch_index;
+    branch_state.brace_depth = brace_stack.len();
 
     let matched = branch_state.glob_match_from(glob, path, brace_stack);
 
@@ -247,6 +250,7 @@ impl State {
 
             self.wildcard.glob_index = self.glob_index as u32;
             self.wildcard.path_index = self.path_index as u32 + 1;
+            self.wildcard.brace_depth = self.brace_depth as u32;
 
             let mut in_globstar = false;
             if is_globstar {
@@ -338,29 +342,24 @@ impl State {
               continue;
             }
           }
-          b'{' if self.path_index < path.len() => {
+          b'{' => {
             if let Some((_, branch_index)) = brace_stack
               .iter()
               .find(|(open_brace_index, _)| *open_brace_index == self.glob_index as u32)
             {
               self.glob_index = *branch_index as usize;
+              self.brace_depth += 1;
               continue;
             }
             return self.match_brace(glob, path, brace_stack);
           }
-          b',' => {
-            if !brace_stack.is_empty() {
-              self.skip_branch(glob, brace_stack);
-              continue;
-            }
-            return path[self.path_index] == b',';
+          b',' if self.brace_depth > 0 => {
+            self.skip_branch(glob);
+            continue;
           }
-          b'}' => {
-            if !brace_stack.is_empty() {
-              self.skip_branch(glob, brace_stack);
-              continue;
-            }
-            return path[self.path_index] == b',';
+          b'}' if self.brace_depth > 0 => {
+            self.skip_branch(glob);
+            continue;
           }
           mut c if self.path_index < path.len() => {
             if !unescape(&mut c, glob, self) {
