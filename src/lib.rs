@@ -48,6 +48,8 @@
  */
 use std::path::is_separator;
 
+use arrayvec::ArrayVec;
+
 #[derive(Clone, Debug, Default)]
 struct State {
   path_index: usize,
@@ -75,7 +77,7 @@ pub fn glob_match(glob: &str, path: &str) -> bool {
     state.glob_index += 1;
   }
 
-  let mut brace_stack = vec![];
+  let mut brace_stack = ArrayVec::<_, 10>::new();
   let matched = state.glob_match_from(glob, path, &mut brace_stack);
   if negated {
     !matched
@@ -174,7 +176,7 @@ impl State {
     path: &[u8],
     open_brace_index: usize,
     branch_index: usize,
-    brace_stack: &mut Vec<(u32, u32)>,
+    brace_stack: &mut ArrayVec<(u32, u32), 10>,
   ) -> bool {
     brace_stack.push((open_brace_index as u32, branch_index as u32));
 
@@ -188,7 +190,7 @@ impl State {
     matched
   }
 
-  fn match_brace(&mut self, glob: &[u8], path: &[u8], brace_stack: &mut Vec<(u32, u32)>) -> bool {
+  fn match_brace(&mut self, glob: &[u8], path: &[u8], brace_stack: &mut ArrayVec<(u32, u32), 10>,) -> bool {
     let mut brace_depth = 0;
     let mut in_brackets = false;
 
@@ -235,7 +237,7 @@ impl State {
     &mut self,
     glob: &[u8],
     path: &[u8],
-    brace_stack: &mut Vec<(u32, u32)>,
+    brace_stack: &mut ArrayVec<(u32, u32), 10>,
   ) -> bool {
     while self.glob_index < glob.len() || self.path_index < path.len() {
       if self.glob_index < glob.len() {
