@@ -1704,6 +1704,12 @@ mod tests {
   }
 
   #[test]
+  fn not_paired_braces() {
+    assert!(!glob_match("{a,}}", "a"));
+    assert!(glob_match("{a,}}", "a}"));
+  }
+
+  #[test]
   fn fuzz_tests() {
     // https://github.com/devongovett/glob-match/issues/1
     let s = "{*{??*{??**,Uz*zz}w**{*{**a,z***b*[!}w??*azzzzzzzz*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!z[za,z&zz}w**z*z*}";
