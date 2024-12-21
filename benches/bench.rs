@@ -3,8 +3,8 @@ use codspeed_criterion_compat::{criterion_group, criterion_main, Criterion};
 fn simple_match(c: &mut Criterion) {
   let mut group = c.benchmark_group("simple_match");
 
-  const GLOB: &'static str = "some/**/n*d[k-m]e?txt";
-  const PATH: &'static str = "some/a/bigger/path/to/the/crazy/needle.txt";
+  const GLOB: &str = "some/**/n*d[k-m]e?txt";
+  const PATH: &str = "some/a/bigger/path/to/the/crazy/needle.txt";
 
   group.bench_function("glob", |b| {
     b.iter(|| assert!(glob::Pattern::new(GLOB).unwrap().matches(PATH)))
@@ -43,8 +43,8 @@ fn simple_match(c: &mut Criterion) {
 fn brace_expansion(c: &mut Criterion) {
   let mut group = c.benchmark_group("brace_expansion");
 
-  const GLOB: &'static str = "some/**/{tob,crazy}/?*.{png,txt}";
-  const PATH: &'static str = "some/a/bigger/path/to/the/crazy/needle.txt";
+  const GLOB: &str = "some/**/{tob,crazy}/?*.{png,txt}";
+  const PATH: &str = "some/a/bigger/path/to/the/crazy/needle.txt";
 
   group.bench_function("globset", |b| {
     b.iter(|| {
