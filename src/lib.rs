@@ -170,6 +170,7 @@ impl State {
     }
   }
 
+  #[inline(always)]
   fn match_brace_branch(
     &self,
     glob: &[u8],
