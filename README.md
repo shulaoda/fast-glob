@@ -2,7 +2,7 @@
 
 ## Introduce
 
-A high-performance glob matching crate for Rust based on [`devongovett/glob-match`](https://github.com/devongovett/glob-match). 
+A high-performance glob matching crate for Rust based on [`devongovett/glob-match`](https://github.com/devongovett/glob-match).
 
 **Key Features:**
 
@@ -10,6 +10,7 @@ A high-performance glob matching crate for Rust based on [`devongovett/glob-matc
 - Supports more complete and well-rounded features.
 
 ## Examples
+
 ```rust
 use fast_glob::glob_match;
 
@@ -41,12 +42,12 @@ const PATH: &'static str = "some/a/bigger/path/to/the/crazy/needle.txt";
 ```
 
 ```
-mine                       time:   [83.742 ns 84.400 ns 85.132 ns]
-glob                       time:   [386.77 ns 396.19 ns 406.87 ns]
-globset                    time:   [21.010 µs 21.114 µs 21.225 µs]
-glob_match                 time:   [195.58 ns 196.80 ns 198.24 ns]
-glob_pre_compiled          time:   [88.180 ns 90.274 ns 92.158 ns]
-globset_pre_compiled       time:   [42.680 ns 42.778 ns 42.911 ns]
+mine                       time:   [87.185 ns 87.307 ns 87.440 ns]
+glob                       time:   [376.83 ns 377.42 ns 378.09 ns]
+globset                    time:   [21.027 µs 21.035 µs 21.045 µs]
+glob_match                 time:   [203.66 ns 203.87 ns 204.09 ns]
+glob_pre_compiled          time:   [63.569 ns 63.684 ns 63.800 ns]
+globset_pre_compiled       time:   [91.543 ns 91.591 ns 91.651 ns]
 ```
 
 ### Test Case 2
@@ -57,10 +58,10 @@ const PATH: &'static str = "some/a/bigger/path/to/the/crazy/needle.txt";
 ```
 
 ```
-mine                       time:   [309.80 ns 311.56 ns 313.25 ns]
-globset                    time:   [31.456 µs 31.502 µs 31.559 µs]
-glob_match                 time:   [384.21 ns 384.71 ns 385.15 ns]
-globset_pre_compiled       time:   [42.505 ns 42.526 ns 42.551 ns]
+mine                       time:   [198.63 ns 199.26 ns 200.08 ns]
+globset                    time:   [41.489 µs 41.575 µs 41.681 µs]
+glob_match                 time:   [367.32 ns 368.10 ns 368.77 ns]
+globset_pre_compiled       time:   [91.498 ns 91.648 ns 91.883 ns]
 ```
 
 ## FAQ
@@ -74,7 +75,6 @@ globset_pre_compiled       time:   [42.505 ns 42.526 ns 42.551 ns]
 - `glob_match("**/{a,b}/c.png", "some/a/b/c.png")`
 
 Due to these limitations, `brace expansion` requires a different implementation that can handle the complexity of such patterns, resulting in some performance trade-offs.
-
 
 ## Credits
 
