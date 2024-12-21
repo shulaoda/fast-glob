@@ -118,7 +118,7 @@ impl State {
       glob_index += 3;
     }
 
-    if glob_index + 3 == glob.len() && &glob[glob_index..] == b"/**" {
+    if &glob[glob_index..] == b"/**" {
       glob_index += 3;
     }
 
