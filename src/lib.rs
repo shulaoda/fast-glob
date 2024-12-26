@@ -69,16 +69,10 @@ struct Wildcard {
 
 type BraceStack = ArrayVec<(u32, u32), 10>;
 
-pub fn glob_match(glob: &str, path: &str) -> bool {
-  let glob = glob.as_bytes();
-  let path = path.as_bytes();
-  glob_match_raw(glob, path)
-}
+pub fn glob_match<T: AsRef<[u8]>>(glob: T, path: T) -> bool {
+  let glob = glob.as_ref();
+  let path = path.as_ref();
 
-pub fn glob_match_raw<'a>(
-  glob: &[u8],
-  path: &'a [u8],
-) -> bool {
   let mut state = State::default();
 
   let mut negated = false;
