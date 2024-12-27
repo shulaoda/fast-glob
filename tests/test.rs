@@ -11,6 +11,10 @@ mod tests {
     assert!(glob_match(&"**/*".to_string(), "foo"));
     assert!(glob_match("**/*".to_string(), "foo".to_string()));
     assert!(glob_match(&"**/*".to_string(), &"foo".to_string()));
+
+    assert!(glob_match("**/*".as_bytes(), "foo"));
+    assert!(glob_match("**/*".as_bytes(), "foo".as_bytes()));
+    assert!(glob_match("**/*".as_bytes(), "foo".to_string()));
   }
 
   #[test]
