@@ -5,6 +5,15 @@ mod tests {
   use super::*;
 
   #[test]
+  fn generic_input() {
+    assert!(glob_match("**/*", "foo"));
+    assert!(glob_match("**/*".to_string(), "foo"));
+    assert!(glob_match(&"**/*".to_string(), "foo"));
+    assert!(glob_match("**/*".to_string(), "foo".to_string()));
+    assert!(glob_match(&"**/*".to_string(), &"foo".to_string()));
+  }
+
+  #[test]
   fn webpack() {
     // Match everything
     assert!(glob_match("**/*", "foo"));
