@@ -152,13 +152,16 @@ impl State {
   #[inline(always)]
   fn skip_branch(&mut self, glob: &[u8]) {
     let mut in_brackets = false;
+    let end_brace_depth = self.brace_depth - 1;
     while self.glob_index < glob.len() {
       match glob[self.glob_index] {
         b'{' if !in_brackets => self.brace_depth += 1,
         b'}' if !in_brackets => {
           self.brace_depth -= 1;
-          self.glob_index += 1;
-          return;
+          if self.brace_depth == end_brace_depth {
+            self.glob_index += 1;
+            return;
+          }
         }
         b'[' if !in_brackets => in_brackets = true,
         b']' => in_brackets = false,

@@ -1719,6 +1719,7 @@ mod tests {
       "{a,b}/c/{d,e}/**/*.ts",
       "a/c/d/one/two/three.test.ts"
     ));
+    assert!(glob_match("{a,{d,e}b}/c", "a/c"));
     assert!(glob_match("{**/a,**/b}", "b"));
 
     let patterns = vec![
