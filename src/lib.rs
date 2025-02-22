@@ -233,7 +233,13 @@ impl State {
   }
 
   #[inline(always)]
-  fn glob_match_from(&mut self, glob: &[u8], path: &[u8], match_start: usize, brace_stack: &mut BraceStack) -> bool {
+  fn glob_match_from(
+    &mut self,
+    glob: &[u8],
+    path: &[u8],
+    match_start: usize,
+    brace_stack: &mut BraceStack,
+  ) -> bool {
     while self.glob_index < glob.len() || self.path_index < path.len() {
       if self.glob_index < glob.len() {
         match glob[self.glob_index] {
@@ -253,7 +259,8 @@ impl State {
 
               let is_end_invalid = self.glob_index != glob.len();
 
-              if (self.glob_index.saturating_sub(match_start) < 3 || glob[self.glob_index - 3] == b'/')
+              if (self.glob_index.saturating_sub(match_start) < 3
+                || glob[self.glob_index - 3] == b'/')
                 && (!is_end_invalid || glob[self.glob_index] == b'/')
               {
                 if is_end_invalid {

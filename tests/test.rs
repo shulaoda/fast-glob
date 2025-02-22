@@ -1714,6 +1714,41 @@ mod tests {
     assert!(glob_match("a/*/ab??.md", "a/bbb/abcd.md"));
     assert!(glob_match("a/bbb/ab??.md", "a/bbb/abcd.md"));
     assert!(glob_match("a/bbb/ab???md", "a/bbb/abcd.md"));
+
+    assert!(glob_match(
+      "{a,b}/c/{d,e}/**/*.ts",
+      "a/c/d/one/two/three.test.ts"
+    ));
+    assert!(glob_match("{**/a,**/b}", "b"));
+
+    let patterns = vec![
+      "{src,extensions}/**/test/**/{fixtures,browser,common}/**/*.{ts,js}",
+      "{extensions,src}/**/{media,images,icons}/**/*.{svg,png,gif,jpg}",
+      "{.github,build,test}/**/{workflows,azure-pipelines,integration,smoke}/**/*.{yml,yaml,json}",
+      "src/vs/{base,editor,platform,workbench}/test/{browser,common,node}/**/[a-z]*[tT]est.ts",
+      "src/vs/workbench/{contrib,services}/**/*{Editor,Workspace,Terminal}*.ts",
+      "{extensions,src}/**/{markdown,json,javascript,typescript}/**/*.{ts,json}",
+      "**/{electron-sandbox,electron-main,browser,node}/**/{*[sS]ervice*,*[cC]ontroller*}.ts",
+      "{src,extensions}/**/{common,browser,electron-sandbox}/**/*{[cC]ontribution,[sS]ervice}.ts",
+      "src/vs/{base,platform,workbench}/**/{test,browser}/**/*{[mM]odel,[cC]ontroller}*.ts",
+      "extensions/**/{browser,common,node}/{**/*[sS]ervice*,**/*[pP]rovider*}.ts",
+    ];
+
+    let input = std::fs::read_to_string("tests/fixtures/input.txt").unwrap();
+
+    for (i, pattern) in patterns.iter().enumerate() {
+      let mut matched: Vec<&str> = vec![];
+      for line in input.lines() {
+        if glob_match(pattern, line) {
+          matched.push(line);
+        }
+      }
+
+      let expected_matches =
+        std::fs::read_to_string(format!("tests/fixtures/matched-pattern-{}.txt", i + 1)).unwrap();
+      let expected = expected_matches.lines().collect::<Vec<&str>>();
+      assert_eq!(matched, expected);
+    }
   }
 
   #[test]
