@@ -358,11 +358,7 @@ impl State {
             }
             return self.match_brace(glob, path, brace_stack);
           }
-          b',' if self.brace_depth > 0 => {
-            self.skip_branch(glob);
-            continue;
-          }
-          b'}' if self.brace_depth > 0 => {
+          b',' | b'}' if self.brace_depth > 0 => {
             self.skip_branch(glob);
             continue;
           }
