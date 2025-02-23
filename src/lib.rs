@@ -82,7 +82,7 @@ pub fn glob_match(glob: impl AsRef<[u8]>, path: impl AsRef<[u8]>) -> bool {
   }
 
   let mut brace_stack = ArrayVec::<_, 10>::new();
-  let matched = state.glob_match_from(glob, path, &mut brace_stack);
+  let matched = state.glob_match_from(glob, path, 0, &mut brace_stack);
 
   negated ^ matched
 }
@@ -152,12 +152,13 @@ impl State {
   #[inline(always)]
   fn skip_branch(&mut self, glob: &[u8]) {
     let mut in_brackets = false;
+    let end_brace_depth = self.brace_depth - 1;
     while self.glob_index < glob.len() {
       match glob[self.glob_index] {
         b'{' if !in_brackets => self.brace_depth += 1,
         b'}' if !in_brackets => {
           self.brace_depth -= 1;
-          if self.brace_depth == 0 {
+          if self.brace_depth == end_brace_depth {
             self.glob_index += 1;
             return;
           }
@@ -185,7 +186,7 @@ impl State {
     branch_state.glob_index = branch_index;
     branch_state.brace_depth = brace_stack.len();
 
-    let matched = branch_state.glob_match_from(glob, path, brace_stack);
+    let matched = branch_state.glob_match_from(glob, path, branch_index, brace_stack);
 
     brace_stack.pop();
 
@@ -235,7 +236,13 @@ impl State {
   }
 
   #[inline(always)]
-  fn glob_match_from(&mut self, glob: &[u8], path: &[u8], brace_stack: &mut BraceStack) -> bool {
+  fn glob_match_from(
+    &mut self,
+    glob: &[u8],
+    path: &[u8],
+    match_start: usize,
+    brace_stack: &mut BraceStack,
+  ) -> bool {
     while self.glob_index < glob.len() || self.path_index < path.len() {
       if self.glob_index < glob.len() {
         match glob[self.glob_index] {
@@ -255,7 +262,8 @@ impl State {
 
               let is_end_invalid = self.glob_index != glob.len();
 
-              if (self.glob_index < 3 || glob[self.glob_index - 3] == b'/')
+              if (self.glob_index.saturating_sub(match_start) < 3
+                || glob[self.glob_index - 3] == b'/')
                 && (!is_end_invalid || glob[self.glob_index] == b'/')
               {
                 if is_end_invalid {
