@@ -9,7 +9,7 @@ keywords = ["glob", "pattern", "walkdir"]
 categories = ["filesystem"]
 documentation = "https://docs.rs/fast-glob"
 description = "A high-performance glob matching crate for Rust"
-repository = "https://github.com/shulaoda/fast-glob.git"
+repository = "https://github.com/oxc-project/fast-glob.git"
 
 [dev-dependencies]
 criterion = "0.5.1"
