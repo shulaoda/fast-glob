@@ -4,7 +4,7 @@ version = "0.4.4"
 edition = "2021"
 license = "MIT"
 
-authors = ["shulaoda <laipichan@qq.com>"]
+authors = ["shulaoda <laipichan@qq.com>", "fast-glob contributors"]
 keywords = ["glob", "pattern", "walkdir"]
 categories = ["filesystem"]
 documentation = "https://docs.rs/fast-glob"
